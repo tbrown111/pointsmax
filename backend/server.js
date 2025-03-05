@@ -16,3 +16,8 @@ app.listen(PORT, (error) =>{
 app.get('/test', (req, res) => {
     res.json({ value: 'Test' });
 });
+
+//example for  post
+// app.post('/search', async (req, res) => {
+//     return res.status(500).json({ error: 'Internal server error' });
+// });
