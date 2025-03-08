@@ -1,117 +1,123 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   View,
   Text,
-  TextInput,
-  TouchableOpacity,
   StyleSheet,
+  Dimensions,
+  TouchableOpacity,
+  ScrollView,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient"; // or use 'react-native-linear-gradient'
 
-const Index = () => {
-  const [spendingCategory, setSpendingCategory] = useState("");
-  const [spendingAmount, setSpendingAmount] = useState("");
-  const [spendingNote, setSpendingNote] = useState("");
+const { width } = Dimensions.get("window");
 
-  const handleSubmit = () => {
-    // You could send this data to a server or store it in local state management
-    const spendingData = {
-      category: spendingCategory,
-      amount: spendingAmount,
-      note: spendingNote,
-      date: new Date().toISOString(), // or implement a proper date picker
-    };
-    console.log("Submitted Spending:", spendingData);
-
-    // Reset inputs after submission if desired
-    setSpendingCategory("");
-    setSpendingAmount("");
-    setSpendingNote("");
-  };
-
+const HomeScreen: React.FC = () => {
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Track Spending</Text>
+    <LinearGradient colors={["#FF7E5F", "#FD3A69"]} style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.title}>PointsMax</Text>
+          <Text style={styles.subtitle}>
+            Maximize your points, maximize your life
+          </Text>
+        </View>
 
-      <View style={styles.inputContainer}>
-        <Text style={styles.label}>Category</Text>
-        <TextInput
-          style={styles.textInput}
-          placeholder="e.g. Groceries"
-          value={spendingCategory}
-          onChangeText={setSpendingCategory}
-        />
-      </View>
+        {/* Content Cards */}
+        <View style={styles.content}>
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Track Your Spending</Text>
+            <Text style={styles.cardDescription}>
+              Monitor your expenses and gain insights to optimize your spending
+              habits.
+            </Text>
+          </View>
 
-      <View style={styles.inputContainer}>
-        <Text style={styles.label}>Amount</Text>
-        <TextInput
-          style={styles.textInput}
-          placeholder="e.g. 75.00"
-          keyboardType="numeric"
-          value={spendingAmount}
-          onChangeText={setSpendingAmount}
-        />
-      </View>
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Find Best Credit Cards</Text>
+            <Text style={styles.cardDescription}>
+              Discover credit card options tailored to your lifestyle and
+              spending patterns.
+            </Text>
+          </View>
 
-      <View style={styles.inputContainer}>
-        <Text style={styles.label}>Note (optional)</Text>
-        <TextInput
-          style={styles.textInput}
-          placeholder="Any additional details"
-          value={spendingNote}
-          onChangeText={setSpendingNote}
-        />
-      </View>
-
-      <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-        <Text style={styles.submitText}>Add Spending</Text>
-      </TouchableOpacity>
-    </View>
+          {/* Call-to-Action Button */}
+          <TouchableOpacity style={styles.button}>
+            <Text style={styles.buttonText}>Get Started</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 24,
+  },
+  scrollContainer: {
+    paddingVertical: 50,
+    paddingHorizontal: 20,
+    flexGrow: 1,
     justifyContent: "center",
-    backgroundColor: "#f5f5f5",
+  },
+  header: {
+    alignItems: "center",
+    marginBottom: 30,
   },
   title: {
-    fontSize: 26,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: 32,
+    fontSize: 36,
+    fontWeight: "700",
+    color: "#FFF",
+    letterSpacing: 2,
   },
-  inputContainer: {
-    marginVertical: 8,
-  },
-  label: {
+  subtitle: {
     fontSize: 16,
-    marginBottom: 6,
-    fontWeight: "600",
+    color: "#FFF",
+    marginTop: 10,
   },
-  textInput: {
-    backgroundColor: "#ffffff",
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 6,
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: "#ddd",
-  },
-  submitButton: {
-    marginTop: 24,
-    backgroundColor: "#007AFF",
-    paddingVertical: 14,
-    borderRadius: 6,
+  content: {
     alignItems: "center",
   },
-  submitText: {
-    color: "#ffffff",
-    fontSize: 16,
+  card: {
+    backgroundColor: "#FFF",
+    width: width - 40,
+    borderRadius: 15,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  cardTitle: {
+    fontSize: 22,
     fontWeight: "600",
+    marginBottom: 10,
+    color: "#333",
+  },
+  cardDescription: {
+    fontSize: 16,
+    color: "#666",
+  },
+  button: {
+    backgroundColor: "#FFF",
+    paddingVertical: 15,
+    paddingHorizontal: 40,
+    borderRadius: 30,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    elevation: 8,
+    marginTop: 20,
+  },
+  buttonText: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#FD3A69",
   },
 });
 
-export default Index;
+export default HomeScreen;
