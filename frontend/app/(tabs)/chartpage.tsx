@@ -1,7 +1,6 @@
 import React from "react";
-import { View, Text, FlatList, StyleSheet } from "react-native";
+import { View, Text, FlatList, StyleSheet, Image, Dimensions } from "react-native";
 import { PieChart } from "react-native-chart-kit";
-import { Dimensions } from "react-native";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -15,12 +14,32 @@ const transactions = [
   { category: "Food", amount: 20 },
 ];
 
-// Hardcoded best credit cards for each category
+// Update the credit cards data structure to use the same image
+const amexGoldImage = require("../../assets/cards/amex-gold.png");
+const chaseSapphirePreferredImage = require("../../assets/cards/chase-sapphire-preferred.png");
+const capitalOneSavorImage = require("../../assets/cards/capital-one-savor.png");
+
 const creditCardsByCategory = {
-  Food: ["Amex Gold", "Chase Sapphire Preferred", "Capital One Savor"],
-  Gas: ["PenFed Platinum", "Citi Custom Cash", "Blue Cash Preferred"],
-  Shopping: ["Amazon Prime Visa", "Chase Freedom Unlimited", "Amex Platinum"],
-  Entertainment: ["Savor Rewards", "Wells Fargo Autograph", "Chase Freedom Flex"],
+  Food: [
+    { name: "Amex Gold", cashback: "4X points", image: amexGoldImage },
+    { name: "Chase Sapphire Preferred", cashback: "3X points", image: chaseSapphirePreferredImage },
+    { name: "Capital One Savor", cashback: "4% cash back", image: capitalOneSavorImage },
+  ],
+  Gas: [
+    { name: "PenFed Platinum", cashback: "5% cash back", image: amexGoldImage },
+    { name: "Citi Custom Cash", cashback: "5% cash back", image: amexGoldImage },
+    { name: "Blue Cash Preferred", cashback: "3% cash back", image: amexGoldImage },
+  ],
+  Shopping: [
+    { name: "Amazon Prime Visa", cashback: "5% cash back", image: amexGoldImage },
+    { name: "Chase Freedom Unlimited", cashback: "1.5% cash back", image: amexGoldImage },
+    { name: "Amex Platinum", cashback: "1X points", image: amexGoldImage },
+  ],
+  Entertainment: [
+    { name: "Savor Rewards", cashback: "4% cash back", image: amexGoldImage },
+    { name: "Wells Fargo Autograph", cashback: "3X points", image: amexGoldImage },
+    { name: "Chase Freedom Flex", cashback: "5% cash back", image: amexGoldImage },
+  ],
 };
 
 // Aggregate spending by category
@@ -29,19 +48,19 @@ const categoryTotals = transactions.reduce((acc, transaction) => {
   return acc;
 }, {});
 
-// Convert to pie chart data format
-const pieChartData = Object.keys(categoryTotals).map((category, index) => ({
-  name: category,
-  amount: categoryTotals[category],
-  color: ["#FF6384", "#36A2EB", "#FFCE56", "#4CAF50"][index % 4],
-  legendFontColor: "#7F7F7F",
-  legendFontSize: 15,
-}));
+// Sort categories by amount and convert to pie chart data format
+const pieChartData = Object.entries(categoryTotals)
+  .sort(([, amountA], [, amountB]) => amountB - amountA) // Sort in descending order
+  .map(([category, amount], index) => ({
+    name: category,
+    amount: amount,
+    color: ["#FF6384", "#36A2EB", "#FFCE56", "#4CAF50"][index % 4],
+    legendFontColor: "#7F7F7F",
+    legendFontSize: 15,
+  }));
 
-// Determine the most spent category
-const mostSpentCategory = Object.keys(categoryTotals).reduce((a, b) =>
-  categoryTotals[a] > categoryTotals[b] ? a : b
-);
+// Update most spent category to use the first item from sorted data
+const mostSpentCategory = pieChartData[0].name;
 
 // Get the best credit cards for the most spent category
 const topCreditCardsForMostSpent = creditCardsByCategory[mostSpentCategory] || [];
@@ -62,15 +81,33 @@ const SpendingChartScreen = () => {
         paddingLeft="15"
       />
 
-      {/* Best Cards for Most Spent Category */}
-      <Text style={styles.sectionHeader}>
-        Best Cards for {mostSpentCategory} Spending:
-      </Text>
-      <FlatList
-        data={topCreditCardsForMostSpent}
-        keyExtractor={(item, index) => index.toString()}
-        renderItem={({ item }) => <Text style={styles.listItem}>• {item}</Text>}
-      />
+      <View style={styles.sectionHeaderContainer}>
+        <Text style={styles.sectionHeader}>
+          Best Cards for{' '}
+          <Text style={styles.categoryHighlight}>
+            {mostSpentCategory}
+          </Text>
+          {' '}Spending:
+        </Text>
+      </View>
+      
+      <View style={styles.cardsContainer}>
+        {topCreditCardsForMostSpent.map((card, index) => (
+          <View key={index} style={styles.cardRow}>
+            <View style={styles.imageContainer}>
+              <Image 
+                source={card.image}
+                style={styles.cardImage}
+                resizeMode="contain"
+              />
+            </View>
+            <View style={styles.cardDetails}>
+              <Text style={styles.cardName}>{card.name}</Text>
+              <Text style={styles.cashbackText}>{card.cashback}</Text>
+            </View>
+          </View>
+        ))}
+      </View>
     </View>
   );
 };
@@ -85,9 +122,51 @@ const styles = StyleSheet.create({
     minHeight: Dimensions.get("window").height,
   },
   header: { fontSize: 22, fontWeight: "bold", textAlign: "center", marginBottom: 20 },
-  sectionHeader: { fontSize: 18, fontWeight: "bold", marginTop: 20 },
+  sectionHeaderContainer: {
+    marginTop: 20,
+    alignItems: 'center',
+  },
+  sectionHeader: {
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  categoryHighlight: {
+    fontStyle: 'italic',
+    color: '#FF6384', // You can change this color to match your app's theme
+  },
   categoryTitle: { fontSize: 16, fontWeight: "600", marginTop: 10 },
   listItem: { fontSize: 14, marginLeft: 10, marginTop: 2 },
+  cardsContainer: {
+    width: '100%',
+    marginTop: 10,
+    paddingHorizontal: 10,
+  },
+  cardRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    width: '100%',
+  },
+  imageContainer: {
+    width: 160,
+    marginRight: 15,
+  },
+  cardImage: {
+    width: '100%',
+    height: 100,
+  },
+  cardDetails: {
+    flex: 1,
+  },
+  cardName: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  cashbackText: {
+    fontSize: 14,
+    color: '#666',
+  },
 });
 
 export default SpendingChartScreen;
