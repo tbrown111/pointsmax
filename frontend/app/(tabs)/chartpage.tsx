@@ -1,5 +1,13 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, Image, Dimensions } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  Dimensions,
+  SafeAreaView,
+  ScrollView,
+} from "react-native";
 import DropDownPicker from "react-native-dropdown-picker";
 
 const screenWidth = Dimensions.get("window").width;
@@ -65,53 +73,64 @@ const SpendingChartScreen = () => {
   const topCreditCards = creditCardsByCategory[selectedCategory] || [];
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.header}>Spending Categories</Text>
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView style={styles.scrollView}>
+        <View style={styles.container}>
+          <Text style={styles.header}>Spending Categories</Text>
 
-      {/* Dropdown for spending categories */}
-      <View style={styles.dropdownContainer}>
-        <DropDownPicker
-          open={open}
-          value={selectedCategory}
-          items={items}
-          setOpen={setOpen}
-          setValue={setSelectedCategory}
-          setItems={setItems}
-          containerStyle={{ width: screenWidth - 40 }}
-          style={styles.dropdown}
-          dropDownStyle={styles.dropdownList}
-          labelStyle={styles.dropdownLabel}
-        />
-      </View>
-
-      {/* Render best credit cards for the selected category */}
-      <Text style={styles.subHeader}>
-        Best Cards for{" "}
-        <Text style={styles.categoryHighlight}>{selectedCategory}</Text>{" "}
-        Spending:
-      </Text>
-      <View style={styles.cardsContainer}>
-        {topCreditCards.map((card, index) => (
-          <View key={index} style={styles.cardRow}>
-            <View style={styles.imageContainer}>
-              <Image
-                source={card.image}
-                style={styles.cardImage}
-                resizeMode="contain"
-              />
-            </View>
-            <View style={styles.cardDetails}>
-              <Text style={styles.cardName}>{card.name}</Text>
-              <Text style={styles.cashbackText}>{card.cashback}</Text>
-            </View>
+          {/* Dropdown for spending categories */}
+          <View style={styles.dropdownContainer}>
+            <DropDownPicker
+              open={open}
+              value={selectedCategory}
+              items={items}
+              setOpen={setOpen}
+              setValue={setSelectedCategory}
+              setItems={setItems}
+              containerStyle={{ width: screenWidth - 40 }}
+              style={styles.dropdown}
+              dropDownStyle={styles.dropdownList}
+              labelStyle={styles.dropdownLabel}
+            />
           </View>
-        ))}
-      </View>
-    </View>
+
+          {/* Render best credit cards for the selected category */}
+          <Text style={styles.subHeader}>
+            Best Cards for{" "}
+            <Text style={styles.categoryHighlight}>{selectedCategory}</Text>{" "}
+            Spending:
+          </Text>
+          <View style={styles.cardsContainer}>
+            {topCreditCards.map((card, index) => (
+              <View key={index} style={styles.cardRow}>
+                <View style={styles.imageContainer}>
+                  <Image
+                    source={card.image}
+                    style={styles.cardImage}
+                    resizeMode="contain"
+                  />
+                </View>
+                <View style={styles.cardDetails}>
+                  <Text style={styles.cardName}>{card.name}</Text>
+                  <Text style={styles.cashbackText}>{card.cashback}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#fff",
+  },
+  scrollView: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     padding: 20,
