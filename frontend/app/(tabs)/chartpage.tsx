@@ -1,101 +1,100 @@
-import React from "react";
-import { View, Text, FlatList, StyleSheet, Image, Dimensions } from "react-native";
-import { PieChart } from "react-native-chart-kit";
+import React, { useState } from "react";
+import { View, Text, StyleSheet, Image, Dimensions } from "react-native";
+import DropDownPicker from "react-native-dropdown-picker";
 
 const screenWidth = Dimensions.get("window").width;
 
-// Hardcoded transaction data
-const transactions = [
-  { category: "Food", amount: 50 },
-  { category: "Food", amount: 30 },
-  { category: "Gas", amount: 40 },
-  { category: "Shopping", amount: 100 },
-  { category: "Entertainment", amount: 60 },
-  { category: "Food", amount: 20 },
-];
-
-// Update the credit cards data structure to use the same image
+// Images (update with your actual images)
 const amexGoldImage = require("../../assets/cards/amex-gold.png");
 const chaseSapphirePreferredImage = require("../../assets/cards/chase-sapphire-preferred.png");
 const capitalOneSavorImage = require("../../assets/cards/capital-one-savor.png");
 
+// Credit cards by spending category
 const creditCardsByCategory = {
-  Food: [
+  Grocery: [
     { name: "Amex Gold", cashback: "4X points", image: amexGoldImage },
-    { name: "Chase Sapphire Preferred", cashback: "3X points", image: chaseSapphirePreferredImage },
-    { name: "Capital One Savor", cashback: "4% cash back", image: capitalOneSavorImage },
+    {
+      name: "Chase Sapphire Preferred",
+      cashback: "3X points",
+      image: chaseSapphirePreferredImage,
+    },
+    {
+      name: "Capital One Savor",
+      cashback: "4% cash back",
+      image: capitalOneSavorImage,
+    },
   ],
-  Gas: [
+  Travel: [
     { name: "PenFed Platinum", cashback: "5% cash back", image: amexGoldImage },
-    { name: "Citi Custom Cash", cashback: "5% cash back", image: amexGoldImage },
-    { name: "Blue Cash Preferred", cashback: "3% cash back", image: amexGoldImage },
+    {
+      name: "Citi Custom Cash",
+      cashback: "5% cash back",
+      image: amexGoldImage,
+    },
+    {
+      name: "Blue Cash Preferred",
+      cashback: "3% cash back",
+      image: amexGoldImage,
+    },
   ],
-  Shopping: [
-    { name: "Amazon Prime Visa", cashback: "5% cash back", image: amexGoldImage },
-    { name: "Chase Freedom Unlimited", cashback: "1.5% cash back", image: amexGoldImage },
+  Leisure: [
+    {
+      name: "Amazon Prime Visa",
+      cashback: "5% cash back",
+      image: amexGoldImage,
+    },
+    {
+      name: "Chase Freedom Unlimited",
+      cashback: "1.5% cash back",
+      image: amexGoldImage,
+    },
     { name: "Amex Platinum", cashback: "1X points", image: amexGoldImage },
-  ],
-  Entertainment: [
-    { name: "Savor Rewards", cashback: "4% cash back", image: amexGoldImage },
-    { name: "Wells Fargo Autograph", cashback: "3X points", image: amexGoldImage },
-    { name: "Chase Freedom Flex", cashback: "5% cash back", image: amexGoldImage },
   ],
 };
 
-// Aggregate spending by category
-const categoryTotals = transactions.reduce((acc, transaction) => {
-  acc[transaction.category] = (acc[transaction.category] || 0) + transaction.amount;
-  return acc;
-}, {});
-
-// Sort categories by amount and convert to pie chart data format
-const pieChartData = Object.entries(categoryTotals)
-  .sort(([, amountA], [, amountB]) => amountB - amountA) // Sort in descending order
-  .map(([category, amount], index) => ({
-    name: category,
-    amount: amount,
-    color: ["#FF6384", "#36A2EB", "#FFCE56", "#4CAF50"][index % 4],
-    legendFontColor: "#7F7F7F",
-    legendFontSize: 15,
-  }));
-
-// Update most spent category to use the first item from sorted data
-const mostSpentCategory = pieChartData[0].name;
-
-// Get the best credit cards for the most spent category
-const topCreditCardsForMostSpent = creditCardsByCategory[mostSpentCategory] || [];
-
 const SpendingChartScreen = () => {
+  const [selectedCategory, setSelectedCategory] = useState("Grocery");
+  const [open, setOpen] = useState(false);
+  const [items, setItems] = useState([
+    { label: "Grocery", value: "Grocery" },
+    { label: "Travel", value: "Travel" },
+    { label: "Leisure", value: "Leisure" },
+  ]);
+
+  // Get best cards based on the selected spending category
+  const topCreditCards = creditCardsByCategory[selectedCategory] || [];
+
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Spending Breakdown</Text>
+      <Text style={styles.header}>Spending Categories</Text>
 
-      {/* Pie Chart */}
-      <PieChart
-        data={pieChartData}
-        width={screenWidth - 40}
-        height={200}
-        chartConfig={{ color: () => `rgba(0, 0, 0, 1)` }}
-        accessor="amount"
-        backgroundColor="transparent"
-        paddingLeft="15"
-      />
-
-      <View style={styles.sectionHeaderContainer}>
-        <Text style={styles.sectionHeader}>
-          Best Cards for{' '}
-          <Text style={styles.categoryHighlight}>
-            {mostSpentCategory}
-          </Text>
-          {' '}Spending:
-        </Text>
+      {/* Dropdown for spending categories */}
+      <View style={styles.dropdownContainer}>
+        <DropDownPicker
+          open={open}
+          value={selectedCategory}
+          items={items}
+          setOpen={setOpen}
+          setValue={setSelectedCategory}
+          setItems={setItems}
+          containerStyle={{ width: screenWidth - 40 }}
+          style={styles.dropdown}
+          dropDownStyle={styles.dropdownList}
+          labelStyle={styles.dropdownLabel}
+        />
       </View>
-      
+
+      {/* Render best credit cards for the selected category */}
+      <Text style={styles.subHeader}>
+        Best Cards for{" "}
+        <Text style={styles.categoryHighlight}>{selectedCategory}</Text>{" "}
+        Spending:
+      </Text>
       <View style={styles.cardsContainer}>
-        {topCreditCardsForMostSpent.map((card, index) => (
+        {topCreditCards.map((card, index) => (
           <View key={index} style={styles.cardRow}>
             <View style={styles.imageContainer}>
-              <Image 
+              <Image
                 source={card.image}
                 style={styles.cardImage}
                 resizeMode="contain"
@@ -116,56 +115,78 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    justifyContent: "center",
+    backgroundColor: "#f5f7fa",
     alignItems: "center",
+    justifyContent: "flex-start",
+  },
+  header: {
+    fontSize: 24,
+    fontWeight: "700",
+    marginVertical: 10,
+    textAlign: "center",
+  },
+  dropdownContainer: {
+    marginVertical: 10,
+    zIndex: 1000, // ensures the dropdown displays above other elements
+  },
+  dropdown: {
     backgroundColor: "#fff",
-    minHeight: Dimensions.get("window").height,
+    borderColor: "#ccc",
   },
-  header: { fontSize: 22, fontWeight: "bold", textAlign: "center", marginBottom: 20 },
-  sectionHeaderContainer: {
-    marginTop: 20,
-    alignItems: 'center',
+  dropdownList: {
+    backgroundColor: "#fff",
+    borderColor: "#ccc",
   },
-  sectionHeader: {
-    fontSize: 18,
-    fontWeight: "bold",
+  dropdownLabel: {
+    fontSize: 16,
+    color: "#333",
+  },
+  subHeader: {
+    fontSize: 20,
+    fontWeight: "600",
+    marginVertical: 20,
+    textAlign: "center",
   },
   categoryHighlight: {
-    fontStyle: 'italic',
-    color: '#FF6384', // You can change this color to match your app's theme
+    fontStyle: "italic",
+    color: "#FF6384",
   },
-  categoryTitle: { fontSize: 16, fontWeight: "600", marginTop: 10 },
-  listItem: { fontSize: 14, marginLeft: 10, marginTop: 2 },
   cardsContainer: {
-    width: '100%',
-    marginTop: 10,
+    width: "100%",
     paddingHorizontal: 10,
   },
   cardRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    width: '100%',
+    flexDirection: "row",
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    padding: 10,
+    marginVertical: 5,
+    alignItems: "center",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
   imageContainer: {
-    width: 160,
+    width: 120,
     marginRight: 15,
   },
   cardImage: {
-    width: '100%',
-    height: 100,
+    width: "100%",
+    height: 80,
   },
   cardDetails: {
     flex: 1,
   },
   cardName: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 4,
   },
   cashbackText: {
     fontSize: 14,
-    color: '#666',
+    color: "#666",
   },
 });
 
