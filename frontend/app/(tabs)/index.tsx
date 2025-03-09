@@ -17,7 +17,7 @@ import { LinearGradient } from "expo-linear-gradient"; // or use 'react-native-l
 
 const { width } = Dimensions.get("window");
 
-export default function Index() {
+export default function HomeScreen() {
   const router = useRouter();
 
   const [checkingAuth, setCheckingAuth] = useState(true);
@@ -63,7 +63,6 @@ export default function Index() {
     setSpendingNote("");
   };
 
-const HomeScreen: React.FC = () => {
   return (
     <LinearGradient colors={["#FF7E5F", "#FD3A69"]} style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
@@ -176,5 +175,3 @@ const styles = StyleSheet.create({
     color: "#FD3A69",
   },
 });
-
-export default HomeScreen;
