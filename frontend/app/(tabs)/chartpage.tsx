@@ -1,99 +1,70 @@
-import React from "react";
-import { View, Text, FlatList, StyleSheet, Image, Dimensions } from "react-native";
-import { PieChart } from "react-native-chart-kit";
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, Dimensions, Image } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
 
 const screenWidth = Dimensions.get("window").width;
 
-// Hardcoded transaction data
-const transactions = [
-  { category: "Food", amount: 50 },
-  { category: "Food", amount: 30 },
-  { category: "Gas", amount: 40 },
-  { category: "Shopping", amount: 100 },
-  { category: "Entertainment", amount: 60 },
-  { category: "Food", amount: 20 },
+// Define available categories
+const SPENDING_CATEGORIES = [
+  "Restaurants",
+  "Travel",
+  "Groceries",
+  "Retail"
 ];
 
-// Update the credit cards data structure to use the same image
-const amexGoldImage = require("../../assets/cards/amex-gold.png");
-const chaseSapphirePreferredImage = require("../../assets/cards/chase-sapphire-preferred.png");
-const capitalOneSavorImage = require("../../assets/cards/capital-one-savor.png");
-
+// Update credit cards data structure
 const creditCardsByCategory = {
-  Food: [
-    { name: "Amex Gold", cashback: "4X points", image: amexGoldImage },
-    { name: "Chase Sapphire Preferred", cashback: "3X points", image: chaseSapphirePreferredImage },
-    { name: "Capital One Savor", cashback: "4% cash back", image: capitalOneSavorImage },
+  Restaurants: [
+    { name: "Amex Gold", cashback: "4X points", image: require("../../assets/cards/amex-gold.png") },
+    { name: "Chase Sapphire Preferred", cashback: "3X points", image: require("../../assets/cards/amex-gold.png") },
+    { name: "Capital One Savor", cashback: "4% cash back", image: require("../../assets/cards/amex-gold.png") },
   ],
-  Gas: [
-    { name: "PenFed Platinum", cashback: "5% cash back", image: amexGoldImage },
-    { name: "Citi Custom Cash", cashback: "5% cash back", image: amexGoldImage },
-    { name: "Blue Cash Preferred", cashback: "3% cash back", image: amexGoldImage },
+  Travel: [
+    { name: "Chase Sapphire Reserve", cashback: "5X points", image: require("../../assets/cards/amex-gold.png") },
+    { name: "Amex Platinum", cashback: "5X points", image: require("../../assets/cards/amex-gold.png") },
+    { name: "Capital One Venture", cashback: "2X miles", image: require("../../assets/cards/amex-gold.png") },
   ],
-  Shopping: [
-    { name: "Amazon Prime Visa", cashback: "5% cash back", image: amexGoldImage },
-    { name: "Chase Freedom Unlimited", cashback: "1.5% cash back", image: amexGoldImage },
-    { name: "Amex Platinum", cashback: "1X points", image: amexGoldImage },
+  Groceries: [
+    { name: "Amex Gold", cashback: "4X points", image: require("../../assets/cards/amex-gold.png") },
+    { name: "Blue Cash Preferred", cashback: "6% cash back", image: require("../../assets/cards/amex-gold.png") },
+    { name: "Capital One SavorOne", cashback: "3% cash back", image: require("../../assets/cards/amex-gold.png") },
   ],
-  Entertainment: [
-    { name: "Savor Rewards", cashback: "4% cash back", image: amexGoldImage },
-    { name: "Wells Fargo Autograph", cashback: "3X points", image: amexGoldImage },
-    { name: "Chase Freedom Flex", cashback: "5% cash back", image: amexGoldImage },
+  Retail: [
+    { name: "Amazon Prime Visa", cashback: "5% cash back", image: require("../../assets/cards/amex-gold.png") },
+    { name: "Target RedCard", cashback: "5% cash back", image: require("../../assets/cards/amex-gold.png") },
+    { name: "Citi Double Cash", cashback: "2% cash back", image: require("../../assets/cards/amex-gold.png") },
   ],
 };
 
-// Aggregate spending by category
-const categoryTotals = transactions.reduce((acc, transaction) => {
-  acc[transaction.category] = (acc[transaction.category] || 0) + transaction.amount;
-  return acc;
-}, {});
-
-// Sort categories by amount and convert to pie chart data format
-const pieChartData = Object.entries(categoryTotals)
-  .sort(([, amountA], [, amountB]) => amountB - amountA) // Sort in descending order
-  .map(([category, amount], index) => ({
-    name: category,
-    amount: amount,
-    color: ["#FF6384", "#36A2EB", "#FFCE56", "#4CAF50"][index % 4],
-    legendFontColor: "#7F7F7F",
-    legendFontSize: 15,
-  }));
-
-// Update most spent category to use the first item from sorted data
-const mostSpentCategory = pieChartData[0].name;
-
-// Get the best credit cards for the most spent category
-const topCreditCardsForMostSpent = creditCardsByCategory[mostSpentCategory] || [];
-
 const SpendingChartScreen = () => {
+  const [selectedCategory, setSelectedCategory] = useState(SPENDING_CATEGORIES[0]);
+
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Spending Breakdown</Text>
+      <Text style={styles.header}>Best Credit Cards By Category</Text>
 
-      {/* Pie Chart */}
-      <PieChart
-        data={pieChartData}
-        width={screenWidth - 40}
-        height={200}
-        chartConfig={{ color: () => `rgba(0, 0, 0, 1)` }}
-        accessor="amount"
-        backgroundColor="transparent"
-        paddingLeft="15"
-      />
-
-      <View style={styles.sectionHeaderContainer}>
-        <Text style={styles.sectionHeader}>
-          Best Cards for{' '}
-          <Text style={styles.categoryHighlight}>
-            {mostSpentCategory}
-          </Text>
-          {' '}Spending:
-        </Text>
+      {/* Category Picker */}
+      <View style={styles.pickerContainer}>
+        <Text>Select a category</Text>
+        <Picker
+          selectedValue={selectedCategory}
+          onValueChange={(itemValue) => setSelectedCategory(itemValue)}
+          style={styles.picker}
+        >
+          {SPENDING_CATEGORIES.map((category) => (
+            <Picker.Item 
+              key={category} 
+              label={category} 
+              value={category} 
+            />
+          ))}
+        </Picker>
       </View>
-      
+
+      {/* Credit Cards List */}
       <View style={styles.cardsContainer}>
-        {topCreditCardsForMostSpent.map((card, index) => (
-          <View key={index} style={styles.cardRow}>
+        {creditCardsByCategory[selectedCategory]?.map((card, index) => (
+          <View key={`card-${index}`} style={styles.cardRow}>
             <View style={styles.imageContainer}>
               <Image 
                 source={card.image}
@@ -116,36 +87,35 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#fff",
-    minHeight: Dimensions.get("window").height,
+    backgroundColor: '#fff',
   },
-  header: { fontSize: 22, fontWeight: "bold", textAlign: "center", marginBottom: 20 },
-  sectionHeaderContainer: {
-    marginTop: 20,
-    alignItems: 'center',
-  },
-  sectionHeader: {
-    fontSize: 18,
+  header: {
+    fontSize: 22,
     fontWeight: "bold",
+    textAlign: "center",
+    marginBottom: 20,
   },
-  categoryHighlight: {
-    fontStyle: 'italic',
-    color: '#FF6384', // You can change this color to match your app's theme
+  pickerContainer: {
+    borderWidth: 1,
+    borderColor: '#dee2e6',
+    borderRadius: 8,
+    marginBottom: 20,
+    backgroundColor: '#f8f9fa',
   },
-  categoryTitle: { fontSize: 16, fontWeight: "600", marginTop: 10 },
-  listItem: { fontSize: 14, marginLeft: 10, marginTop: 2 },
-  cardsContainer: {
+  picker: {
     width: '100%',
-    marginTop: 10,
-    paddingHorizontal: 10,
+    height: 50,
+  },
+  cardsContainer: {
+    paddingTop: 200,
   },
   cardRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
-    width: '100%',
+    marginBottom: 20,
+    backgroundColor: '#f8f9fa',
+    padding: 15,
+    borderRadius: 8,
   },
   imageContainer: {
     width: 160,
