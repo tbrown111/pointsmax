@@ -1,4 +1,6 @@
-import React from "react";
+// frontend/app/index.tsx
+import React, { useEffect, useState } from "react";
+
 import {
   View,
   Text,
@@ -6,10 +8,60 @@ import {
   Dimensions,
   TouchableOpacity,
   ScrollView,
+  ActivityIndicator,
 } from "react-native";
+import { onAuthStateChanged, User } from "firebase/auth";
+import { auth } from "../../services/firebaseConfig";
+import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient"; // or use 'react-native-linear-gradient'
 
 const { width } = Dimensions.get("window");
+
+export default function Index() {
+  const router = useRouter();
+
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [user, setUser] = useState<User | null>(null);
+
+  // States for your spending form:
+  const [spendingCategory, setSpendingCategory] = useState("");
+  const [spendingAmount, setSpendingAmount] = useState("");
+  const [spendingNote, setSpendingNote] = useState("");
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (!currentUser) {
+        router.replace("/login");
+      } else {
+        setUser(currentUser);
+      }
+      setCheckingAuth(false);
+    });
+    return () => unsubscribe();
+  }, [router]);
+
+  if (checkingAuth) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" />
+        <Text>Checking Auth...</Text>
+      </View>
+    );
+  }
+
+  const handleSubmit = () => {
+    const spendingData = {
+      category: spendingCategory,
+      amount: spendingAmount,
+      note: spendingNote,
+      date: new Date().toISOString(),
+    };
+    console.log("Submitted Spending:", spendingData);
+    // Reset inputs if desired:
+    setSpendingCategory("");
+    setSpendingAmount("");
+    setSpendingNote("");
+  };
 
 const HomeScreen: React.FC = () => {
   return (
@@ -49,9 +101,14 @@ const HomeScreen: React.FC = () => {
       </ScrollView>
     </LinearGradient>
   );
-};
+}
 
 const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   container: {
     flex: 1,
   },
