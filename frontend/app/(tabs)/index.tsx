@@ -76,26 +76,32 @@ export default function HomeScreen() {
 
         {/* Content Cards */}
         <View style={styles.content}>
-          <View style={styles.card}>
+          <TouchableOpacity
+            style={styles.card}
+            onPress={() => router.push("/track")}
+          >
             <Text style={styles.cardTitle}>Track Your Spending</Text>
             <Text style={styles.cardDescription}>
               Monitor your expenses and gain insights to optimize your spending
               habits.
             </Text>
-          </View>
+          </TouchableOpacity>
 
-          <View style={styles.card}>
+          <TouchableOpacity
+            style={styles.card}
+            onPress={() => router.push("/chartpage")}
+          >
             <Text style={styles.cardTitle}>Find Best Credit Cards</Text>
             <Text style={styles.cardDescription}>
               Discover credit card options tailored to your lifestyle and
               spending patterns.
             </Text>
-          </View>
+          </TouchableOpacity>
 
           {/* Call-to-Action Button */}
-          <TouchableOpacity style={styles.button}>
+          {/* <TouchableOpacity style={styles.button}>
             <Text style={styles.buttonText}>Get Started</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
       </ScrollView>
     </LinearGradient>
