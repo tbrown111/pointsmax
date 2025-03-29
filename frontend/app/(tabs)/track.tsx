@@ -7,13 +7,17 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   ScrollView,
+  SafeAreaView,
   Platform,
   Alert,
   Dimensions,
   Modal,
+  FlatList
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { PieChart } from "react-native-chart-kit";
+import { Ionicons } from '@expo/vector-icons';
+
 
 const TrackSpending = () => {
   const [spendingCategory, setSpendingCategory] = useState("");
@@ -156,22 +160,24 @@ const TrackSpending = () => {
   const screenWidth = Dimensions.get("window").width;
 
   return (
-    <View style={styles.container}>
-      {/* Top "Chart" Button */}
-      <View style={styles.headerContainer}>
-        <TouchableOpacity
-          style={styles.chartToggleButton}
-          onPress={() => setShowChart(!showChart)}
-        >
-          <Text style={styles.chartToggleButtonText}>Chart</Text>
-        </TouchableOpacity>
-      </View>
-
+    <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.avoidingView}
         keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
       >
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+      <Text style={styles.header}>Transactions</Text>
+      
+      {/* Top "Chart" Button */}
+      <View style={styles.chartButtonContainer}>
+        <TouchableOpacity
+          style={styles.chartToggleButton}
+          onPress={() => setShowChart(!showChart)}
+        >
+          <Text style={styles.chartToggleButtonText}>View Chart</Text>
+        </TouchableOpacity>
+      </View>
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           {/* Conditionally Render the Pie Chart */}
           {showChart && (
@@ -193,34 +199,37 @@ const TrackSpending = () => {
               />
             </View>
           )}
-
-          {/* Spending List */}
-          <Text style={styles.listTitle}>Recent Spendings</Text>
-          <View style={styles.spendingList}>
-            {spendings.map((item, index) => (
-              <View style={styles.spendingItem} key={index}>
-                <Text style={styles.spendingItemCategory}>
-                  {item.category} - ${item.amount}
-                </Text>
-                {item.note ? (
-                  <Text style={styles.spendingItemNote}>{item.note}</Text>
-                ) : null}
-                <Text style={styles.spendingItemDate}>
-                  {new Date(item.date).toLocaleString()}
-                </Text>
-              </View>
-            ))}
-          </View>
         </ScrollView>
-
-        {/* Floating "+" Button to open Modal */}
-        <TouchableOpacity
-          style={styles.fabButton}
-          onPress={() => setModalVisible(true)}
-        >
-          <Text style={styles.fabButtonText}>+</Text>
-        </TouchableOpacity>
-
+        {/* Transaction List */}
+        <FlatList
+          data={spendings}
+          keyExtractor={(item, index) => index.toString()} // Use index as key if there isn't a unique id
+          renderItem={({ item }) => (
+            <View style={styles.spendingItem}>
+              <View style={styles.spendingContainer}>
+              <Text style={styles.spendingItemCategory}>
+                {item.category}
+              </Text>
+              <Text style={styles.spendingItemAmount}>
+                ${item.amount}
+              </Text>
+              </View>
+              {item.note && <Text style={styles.spendingItemNote}>{item.note}</Text>}
+              <Text style={styles.spendingItemDate}>
+                {new Date(item.date).toLocaleString()}
+              </Text>
+            </View>
+          )}
+          contentContainerStyle={styles.listContainer}
+        />
+      </ScrollView>
+      {/* Add Card Button */}
+      <TouchableOpacity 
+        style={styles.addButton}
+        onPress={() => setModalVisible(true)}
+      >
+        <Ionicons name="add" size={30} color="white" />
+      </TouchableOpacity>
         {/* Modal for adding new spending */}
         <Modal
           visible={modalVisible}
@@ -228,6 +237,7 @@ const TrackSpending = () => {
           animationType="slide"
           onRequestClose={() => setModalVisible(false)}
         >
+          <ScrollView style={styles.keyboardModal}>
           <View style={styles.modalOverlay}>
             <View style={styles.modalContainer}>
               <Text style={styles.modalTitle}>Add New Spending</Text>
@@ -265,7 +275,6 @@ const TrackSpending = () => {
                   onChangeText={setSpendingNote}
                 />
               </View>
-
               {/* Action Buttons */}
               <View style={styles.modalButtons}>
                 <TouchableOpacity
@@ -283,26 +292,43 @@ const TrackSpending = () => {
               </View>
             </View>
           </View>
+          </ScrollView>
         </Modal>
+        
       </KeyboardAvoidingView>
-    </View>
+    </SafeAreaView>
   );
 };
 
 export default TrackSpending;
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
-    backgroundColor: "#f0f4c3",
+    backgroundColor: '#f5f7fa',
   },
-  headerContainer: {
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 20,
     paddingTop: 50,
+  },
+  header: {
+    fontSize: 34,
+    fontWeight: "bold",
+    textAlign: "left",
+    marginBottom: 30,
+    color: '#000000',
+  },
+  chartButtonContainer: {
+    //paddingTop: 50,
     alignItems: "center",
     marginBottom: 10,
   },
   chartToggleButton: {
-    backgroundColor: "#33691e",
+    backgroundColor: "#4CD964",
+    width: '100%',
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 8,
@@ -316,12 +342,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#fff",
     fontWeight: "bold",
+    textAlign: "center",
   },
   avoidingView: {
     flex: 1,
   },
   scrollContainer: {
-    paddingBottom: 100,
+    paddingBottom: 0,
   },
   chartContainer: {
     alignItems: "center",
@@ -339,7 +366,7 @@ const styles = StyleSheet.create({
   chartTitle: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#33691e",
+    color: "#000000",
     marginBottom: 12,
   },
   listTitle: {
@@ -351,55 +378,65 @@ const styles = StyleSheet.create({
     color: "#33691e",
   },
   spendingList: {
-    marginHorizontal: 16,
+    //marginHorizontal: 16,
   },
   spendingItem: {
-    backgroundColor: "#558b2f",
+    backgroundColor: '#f9f9f9',
+    padding: 15,
+    marginVertical: 8,
     borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 3,
-    elevation: 2,
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+    borderWidth: 0,
   },
+  spendingContainer: {
+    flexDirection: 'row', // Align items in a row
+    justifyContent: 'space-between', // Space out the items (left and right)
+    alignItems: 'center', // Vertically center the items
+    paddingVertical: 10,
+  },
+  spendingItemAmount: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: 'green', // Green color for the amount
+    marginLeft: 10, // Adds space between the category and the amount
+},
   spendingItemCategory: {
     fontSize: 18,
-    fontWeight: "bold",
-    color: "#fff",
-    marginBottom: 4,
-  },
-  spendingItemNote: {
-    fontSize: 14,
-    color: "#fff",
-    marginBottom: 4,
-  },
-  spendingItemDate: {
-    fontSize: 12,
-    fontStyle: "italic",
-    color: "#fff",
-  },
-  fabButton: {
-    position: "absolute",
-    bottom: 30,
-    right: 30,
-    backgroundColor: "#33691e",
+    fontWeight: '600',
+    flex: 1,
+},
+spendingItemNote: {
+  fontSize: 14,
+  color: '#666',
+  marginTop: 4,
+},
+spendingItemDate: {
+  fontSize: 12,
+  color: '#aaa',
+  marginTop: 6,
+},
+  addButton: {
+    position: 'absolute',
+    right: 20,
+    bottom: 100,
     width: 60,
     height: 60,
     borderRadius: 30,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
+    backgroundColor: '#4CD964',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
     elevation: 5,
-  },
-  fabButtonText: {
-    fontSize: 32,
-    color: "#fff",
-    lineHeight: 36,
   },
   modalOverlay: {
     flex: 1,
@@ -415,7 +452,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 22,
     fontWeight: "bold",
-    color: "#33691e",
+    color: "#4CD964",
     marginBottom: 16,
     textAlign: "center",
   },
@@ -426,7 +463,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 6,
     fontWeight: "600",
-    color: "#33691e",
+    color: "#4CD964",
   },
   textInput: {
     backgroundColor: "#ffffff",
@@ -450,7 +487,7 @@ const styles = StyleSheet.create({
   submitButton: {
     flex: 1,
     marginHorizontal: 4,
-    backgroundColor: "#33691e",
+    backgroundColor: "#4CD964",
     paddingVertical: 12,
     borderRadius: 6,
     alignItems: "center",
@@ -460,4 +497,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
+  listContainer: {
+    flexGrow: 1,
+    padding:0,
+  },
+  keyboardModal: {
+    paddingTop: 15
+  }
 });
