@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   View,
   Text,
@@ -8,9 +8,6 @@ import {
   SafeAreaView,
   ScrollView,
 } from "react-native";
-import DropDownPicker from "react-native-dropdown-picker";
-
-const screenWidth = Dimensions.get("window").width;
 
 // Images (update with your actual images)
 const amexGoldImage = require("../../assets/cards/amex-gold.png");
@@ -61,38 +58,17 @@ const creditCardsByCategory = {
 };
 
 const SpendingChartScreen = () => {
-  const [selectedCategory, setSelectedCategory] = useState("Grocery");
-  const [open, setOpen] = useState(false);
-  const [items, setItems] = useState([
-    { label: "Grocery", value: "Grocery" },
-    { label: "Travel", value: "Travel" },
-    { label: "Leisure", value: "Leisure" },
-  ]);
+  // Manually set the category to "Grocery", "Travel", or "Leisure"
+  const selectedCategory = "Grocery";  // Change this value manually in the code
 
   // Get best cards based on the selected spending category
   const topCreditCards = creditCardsByCategory[selectedCategory] || [];
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView style={styles.scrollView}>
-        <View style={styles.container}>
-          <Text style={styles.header}>Spending Categories</Text>
-
-          {/* Dropdown for spending categories */}
-          <View style={styles.dropdownContainer}>
-            <DropDownPicker
-              open={open}
-              value={selectedCategory}
-              items={items}
-              setOpen={setOpen}
-              setValue={setSelectedCategory}
-              setItems={setItems}
-              containerStyle={{ width: screenWidth - 40 }}
-              style={styles.dropdown}
-              dropDownStyle={styles.dropdownList}
-              labelStyle={styles.dropdownLabel}
-            />
-          </View>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        
+          <Text style={styles.header}>Best Cards</Text>
 
           {/* Render best credit cards for the selected category */}
           <Text style={styles.subHeader}>
@@ -117,7 +93,6 @@ const SpendingChartScreen = () => {
               </View>
             ))}
           </View>
-        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -126,80 +101,67 @@ const SpendingChartScreen = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "#f5f7fa",
   },
   scrollView: {
     flex: 1,
   },
-  container: {
-    flex: 1,
+  scrollContent: {
     padding: 20,
-    backgroundColor: "#f5f7fa",
-    alignItems: "center",
-    justifyContent: "flex-start",
+    paddingTop: 50,
   },
   header: {
-    fontSize: 24,
-    fontWeight: "700",
-    marginVertical: 10,
-    textAlign: "center",
-  },
-  dropdownContainer: {
-    marginVertical: 10,
-    zIndex: 1000, // ensures the dropdown displays above other elements
-  },
-  dropdown: {
-    backgroundColor: "#fff",
-    borderColor: "#ccc",
-  },
-  dropdownList: {
-    backgroundColor: "#fff",
-    borderColor: "#ccc",
-  },
-  dropdownLabel: {
-    fontSize: 16,
-    color: "#333",
+    fontSize: 34,
+    fontWeight: "bold",
+    textAlign: "left",
+    marginBottom: 30,
+    color: '#000000',
   },
   subHeader: {
     fontSize: 20,
     fontWeight: "600",
     marginVertical: 20,
-    textAlign: "center",
+    textAlign: "left",
   },
   categoryHighlight: {
     fontStyle: "italic",
-    color: "#FF6384",
+    color: "#4CD964",
   },
   cardsContainer: {
-    width: "100%",
-    paddingHorizontal: 10,
+    marginTop: 10,
   },
   cardRow: {
-    flexDirection: "row",
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    padding: 10,
-    marginVertical: 5,
-    alignItems: "center",
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+    backgroundColor: '#fff',
+    padding: 15,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
   },
   imageContainer: {
-    width: 120,
+    width: 160,
     marginRight: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   cardImage: {
     width: "100%",
-    height: 80,
+    height: 100,
   },
   cardDetails: {
     flex: 1,
+    justifyContent: 'center',
   },
   cardName: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "600",
     marginBottom: 4,
   },

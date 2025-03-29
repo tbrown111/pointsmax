@@ -1,278 +1,340 @@
-import React, { useState } from "react";
-import {
-  View,
-  Text,
+import React, { useState, useEffect } from 'react';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  ScrollView, 
+  SafeAreaView, 
+  TouchableOpacity, 
   TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  KeyboardAvoidingView,
-  ScrollView,
-  Platform,
-  Alert,
-} from "react-native";
+  Image,
+  Dimensions
+} from 'react-native';
+import Modal from 'react-native-modal';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
 
-const AddCard = () => {
-  const [cardNumber, setCardNumber] = useState("");
-  const [cardHolder, setCardHolder] = useState("");
-  const [expiry, setExpiry] = useState("");
-  const [cvv, setCvv] = useState("");
-  const [bank, setBank] = useState("");
-  const [cardType, setCardType] = useState("");
+// Define interface for card type
+interface CreditCard {
+  id: string;
+  name: string;
+  bankName: string;
+  image: any;
+}
 
-  const handleSubmit = async () => {
-    const cardData = {
-      cardNumber,
-      cardHolder,
-      expiry,
-      cvv,
-      bank,
-      cardType,
-      dateAdded: new Date().toISOString(),
-    };
+// Sample available cards data
+const availableCards: CreditCard[] = [
+  { 
+    id: '1', 
+    bankName: 'American Express',
+    name: 'Gold Card', 
+    image: require('../../assets/cards/amex-gold.png') 
+  },
+  { 
+    id: '2', 
+    bankName: 'Chase',
+    name: 'Sapphire Preferred', 
+    image: require('../../assets/cards/amex-gold.png') 
+  },
+  { 
+    id: '3', 
+    bankName: 'Capital One',
+    name: 'Venture', 
+    image: require('../../assets/cards/amex-gold.png') 
+  },
+  { 
+    id: '4', 
+    bankName: 'Citi',
+    name: 'Double Cash', 
+    image: require('../../assets/cards/amex-gold.png') 
+  },
+  // Add more cards as needed
+];
 
+const AddCardScreen = () => {
+  const [userCards, setUserCards] = useState<CreditCard[]>([]);
+  const [isModalVisible, setModalVisible] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  // Load user's cards on component mount
+  useEffect(() => {
+    loadUserCards();
+  }, []);
+
+  // Load cards from storage
+  const loadUserCards = async () => {
     try {
-      // Replace the URL with your server endpoint
-      const response = await fetch("https://your-server.com/api/cards", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(cardData),
-      });
-
-      if (response.ok) {
-        Alert.alert("Success", "Card added successfully!");
-        // Reset form fields
-        setCardNumber("");
-        setCardHolder("");
-        setExpiry("");
-        setCvv("");
-        setBank("");
-        setCardType("");
-      } else {
-        Alert.alert("Error", "Failed to add card. Please try again.");
+      const savedCards = await AsyncStorage.getItem('userCards');
+      if (savedCards) {
+        setUserCards(JSON.parse(savedCards));
       }
     } catch (error) {
-      console.error("Error adding card:", error);
-      Alert.alert("Error", "Something went wrong. Please try again later.");
+      console.error('Error loading cards:', error);
     }
   };
 
+  // Save cards to storage
+  const saveUserCards = async (cards: CreditCard[]) => {
+    try {
+      await AsyncStorage.setItem('userCards', JSON.stringify(cards));
+    } catch (error) {
+      console.error('Error saving cards:', error);
+    }
+  };
+
+  // Add card to user's collection
+  const addCard = async (card: CreditCard) => {
+    const updatedCards = [...userCards, card];
+    setUserCards(updatedCards);
+    await saveUserCards(updatedCards);
+    setModalVisible(false);
+    setSearchQuery('');
+  };
+
+  // Filter cards based on search query
+  const filteredCards = availableCards.filter(card =>
+    card.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
-    >
-      <ScrollView
-        contentContainerStyle={styles.scrollContainer}
-        keyboardShouldPersistTaps="handled"
-      >
-        <Text style={styles.title}>Add Your Credit Card</Text>
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        <Text style={styles.header}>Your Cards</Text>
 
-        {/* Creative Live Card Preview */}
-        <View style={styles.cardPreview}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.bankName}>
-              {bank ? bank.toUpperCase() : "BANK NAME"}
-            </Text>
-            <Text style={styles.cardTypeText}>
-              {cardType ? cardType.toUpperCase() : "CARD TYPE"}
-            </Text>
+        {userCards.length === 0 ? (
+          <Text style={styles.noCardsText}>You don't have any cards</Text>
+        ) : (
+          <View style={styles.cardsContainer}>
+            {userCards.map((card, index) => (
+              <View key={`card-${index}`} style={styles.cardRow}>
+                <View style={styles.imageContainer}>
+                  <Image 
+                    source={card.image}
+                    style={styles.cardImage}
+                    resizeMode="contain"
+                  />
+                </View>
+                <View style={styles.cardDetails}>
+                  <Text style={styles.cardName}>{card.name}</Text>
+                </View>
+              </View>
+            ))}
           </View>
-          <Text style={styles.cardNumber}>
-            {cardNumber
-              ? cardNumber.replace(/(.{4})/g, "$1 ").trim()
-              : "XXXX XXXX XXXX XXXX"}
-          </Text>
-          <View style={styles.cardDetails}>
-            <Text style={styles.cardHolder}>
-              {cardHolder ? cardHolder.toUpperCase() : "CARDHOLDER"}
-            </Text>
-            <Text style={styles.expiry}>{expiry ? expiry : "MM/YY"}</Text>
-          </View>
-        </View>
-
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Card Number</Text>
-          <TextInput
-            style={styles.textInput}
-            placeholder="1234 5678 9012 3456"
-            placeholderTextColor="#777"
-            keyboardType="numeric"
-            value={cardNumber}
-            onChangeText={setCardNumber}
-          />
-        </View>
-
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Card Holder Name</Text>
-          <TextInput
-            style={styles.textInput}
-            placeholder="John Doe"
-            placeholderTextColor="#777"
-            value={cardHolder}
-            onChangeText={setCardHolder}
-          />
-        </View>
-
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Bank</Text>
-          <TextInput
-            style={styles.textInput}
-            placeholder="e.g. Chase, Bank of America"
-            placeholderTextColor="#777"
-            value={bank}
-            onChangeText={setBank}
-          />
-        </View>
-
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Card Type</Text>
-          <TextInput
-            style={styles.textInput}
-            placeholder="e.g. Visa, MasterCard"
-            placeholderTextColor="#777"
-            value={cardType}
-            onChangeText={setCardType}
-          />
-        </View>
-
-        <View style={styles.rowContainer}>
-          <View style={[styles.inputContainer, styles.halfInput]}>
-            <Text style={styles.label}>Expiry Date</Text>
-            <TextInput
-              style={styles.textInput}
-              placeholder="MM/YY"
-              placeholderTextColor="#777"
-              value={expiry}
-              onChangeText={setExpiry}
-            />
-          </View>
-          <View style={[styles.inputContainer, styles.halfInput]}>
-            <Text style={styles.label}>CVV</Text>
-            <TextInput
-              style={styles.textInput}
-              placeholder="123"
-              placeholderTextColor="#777"
-              keyboardType="numeric"
-              secureTextEntry={true}
-              value={cvv}
-              onChangeText={setCvv}
-            />
-          </View>
-        </View>
-
-        <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-          <Text style={styles.submitText}>Add Card</Text>
-        </TouchableOpacity>
+        )}
       </ScrollView>
-    </KeyboardAvoidingView>
+
+      {/* Add Card Button */}
+      <TouchableOpacity 
+        style={styles.addButton}
+        onPress={() => setModalVisible(true)}
+      >
+        <Ionicons name="add" size={30} color="white" />
+      </TouchableOpacity>
+
+      {/* Search Modal - Updated position and layout */}
+      <Modal
+        isVisible={isModalVisible}
+        onBackdropPress={() => setModalVisible(false)}
+        style={styles.modal}
+        animationIn="slideInDown"
+        animationOut="slideOutUp"
+      >
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search cards..."
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoFocus={true}
+            />
+            <TouchableOpacity 
+              style={styles.closeButton}
+              onPress={() => setModalVisible(false)}
+            >
+              <Ionicons name="close" size={24} color="#f5f7fa" />
+            </TouchableOpacity>
+          </View>
+          
+          <ScrollView style={styles.searchResults}>
+            {filteredCards.map((card) => (
+              <View key={card.id} style={styles.searchResultRow}>
+                <Image 
+                  source={card.image}
+                  style={styles.searchResultImage}
+                  resizeMode="contain"
+                />
+                <View style={styles.cardTextContainer}>
+                  <Text style={styles.bankName}>{card.bankName}</Text>
+                  <Text style={styles.searchResultText}>{card.name}</Text>
+                </View>
+                <TouchableOpacity 
+                  style={styles.addCardButton}
+                  onPress={() => addCard(card)}
+                >
+                  <Ionicons name="add-circle" size={24} color="#4CD964" />
+                </TouchableOpacity>
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+      </Modal>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
-    backgroundColor: "#e0f7fa",
+    backgroundColor: '#f5f7fa',
   },
-  scrollContainer: {
-    flexGrow: 1,
-    padding: 24,
-    justifyContent: "center",
+  scrollView: {
+    flex: 1,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: 24,
-    color: "#00796b",
-  },
-  cardPreview: {
-    backgroundColor: "#00796b",
-    borderRadius: 12,
+  scrollContent: {
     padding: 20,
-    marginBottom: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
+    paddingTop: 50,
+  },
+  header: {
+    fontSize: 34,
+    fontWeight: "bold",
+    textAlign: "left",
+    marginBottom: 30,
+    color: '#000000',
+  },
+  noCardsText: {
+    fontSize: 16,
+    color: '#aa92ec',
+    textAlign: 'center',
+    marginTop: 20,
+  },
+  cardsContainer: {
+    marginTop: 10,
+  },
+  cardRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+    backgroundColor: '#fff',
+    padding: 15,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 5,
-    minHeight: 220, // Increased height for a taller card preview
-    justifyContent: "center",
   },
-  cardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 10,
+  imageContainer: {
+    width: 160,
+    marginRight: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  bankName: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#fff",
-  },
-  cardTypeText: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#fff",
-  },
-  cardNumber: {
-    fontSize: 22,
-    letterSpacing: 2,
-    color: "#fff",
-    marginBottom: 20,
+  cardImage: {
+    width: '100%',
+    height: 100,
   },
   cardDetails: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    flex: 1,
+    justifyContent: 'center',
   },
-  cardHolder: {
-    fontSize: 16,
-    color: "#fff",
-    fontWeight: "600",
+  cardName: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#000',
   },
-  expiry: {
-    fontSize: 16,
-    color: "#fff",
-    fontWeight: "600",
+  addButton: {
+    position: 'absolute',
+    right: 20,
+    bottom: 100,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#4CD964',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
-  inputContainer: {
-    marginVertical: 8,
+  modal: {
+    margin: 0,
+    justifyContent: 'flex-start',
   },
-  rowContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+  modalContent: {
+    backgroundColor: '#f5f7fa',
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    maxHeight: Dimensions.get('window').height * 0.8,
+    paddingBottom: 20,
   },
-  halfInput: {
-    flex: 0.48,
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 15,
+    paddingTop: 50,
+    backgroundColor: '#4dc964',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f5f7fa',
   },
-  label: {
-    fontSize: 16,
-    marginBottom: 6,
-    fontWeight: "600",
-    color: "#004d40",
-  },
-  textInput: {
-    backgroundColor: "#ffffff",
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 6,
-    fontSize: 16,
+  searchInput: {
+    flex: 1,
+    height: 40,
     borderWidth: 1,
-    borderColor: "#ccc",
+    borderColor: '#f5f7fa',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    backgroundColor: '#fff',
+    marginRight: 10,
+    color: '#232c54',
   },
-  submitButton: {
-    marginTop: 24,
-    backgroundColor: "#004d40",
-    paddingVertical: 14,
-    borderRadius: 6,
-    alignItems: "center",
+  closeButton: {
+    padding: 5,
   },
-  submitText: {
-    color: "#ffffff",
+  searchResults: {
+    maxHeight: Dimensions.get('window').height * 0.6,
+    padding: 15,
+  },
+  searchResultRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: '#fff',
+    marginBottom: 10,
+  },
+  searchResultImage: {
+    width: 60,
+    height: 40,
+    marginRight: 10,
+  },
+  cardTextContainer: {
+    flex: 1,
+    marginRight: 10,
+  },
+  bankName: {
+    fontSize: 12,
+    color: '#232c54',
+    marginBottom: 2,
+  },
+  searchResultText: {
     fontSize: 16,
-    fontWeight: "600",
+    color: '#232c54',
+    fontWeight: '500',
+  },
+  addCardButton: {
+    padding: 5,
   },
 });
 
-export default AddCard;
+
+
+export default AddCardScreen;
