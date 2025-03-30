@@ -60,15 +60,6 @@ export default function ProtectedTabsLayout() {
       }}
     >
       <Tabs.Screen
-        name="profile"
-        options={{
-          title: "Profile",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person-circle" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="index"
         options={{
           title: 'Home',
@@ -95,6 +86,27 @@ export default function ProtectedTabsLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="chartpage"
+        options={{
+          title: "Best Card",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="star" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: "Profile",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="person-circle" size={size} color={color} />
+          ),
+        }}
+      />
+      
+      
     </Tabs>
+    
   );
 }
