@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, Alert, Platform, ScrollView } from 'react-native';
+import { View, Text, TextInput, Button, StyleSheet, Alert, Platform, ScrollView, SafeAreaView, TouchableOpacity } from 'react-native';
 import axios from 'axios';
 import DropDownPicker from 'react-native-dropdown-picker';
 import { getAuth, onAuthStateChanged, signOut } from 'firebase/auth';
@@ -71,81 +71,146 @@ export default function ProfileScreen() {
   };
 
   return (
-    <LinearGradient colors={["#87CEFA", "#4682B4"]} style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
         <Text style={styles.header}>Profile</Text>
-        <Text style={styles.userInfo}>Email: {userEmail}</Text>
-        <Text style={styles.userInfo}>User ID: {userId}</Text>
 
-        <DropDownPicker
-          open={open}
-          value={category}
-          items={items}
-          setOpen={setOpen}
-          setValue={setCategory}
-          setItems={setItems}
-          placeholder="Select a category"
-          style={styles.dropdown}
-          textStyle={{ color: 'white' }}
-          dropDownContainerStyle={{ backgroundColor: '#2c2c2e' }}
-        />
-
-        <TextInput
-          style={styles.input}
-          placeholder="Amount"
-          placeholderTextColor="#aaa"
-          keyboardType="numeric"
-          value={amount}
-          onChangeText={setAmount}
-        />
-
-        <View style={styles.buttonWrapper}>
-          <Button title="Add Spending" color="#00008B" onPress={handleSubmit} />
+        {/* User Info Card */}
+        <View style={styles.cardRow}>
+          <View style={styles.cardDetails}>
+            <Text style={styles.cardName}>Email:</Text>
+            <Text style={styles.cashbackText}>{userEmail}</Text>
+            <Text style={styles.cardName}>User ID:</Text>
+            <Text style={styles.cashbackText}>{userId}</Text>
+          </View>
         </View>
-        <View style={styles.buttonWrapper}>
-          <Button title="Logout" color="#00008B" onPress={handleLogout} />
+
+        {/* Spending Input Card */}
+        <View style={styles.cardRow}>
+          <Text style={styles.cardName}>Select Spending Category:</Text>
+          <DropDownPicker
+            open={open}
+            value={category}
+            items={items}
+            setOpen={setOpen}
+            setValue={setCategory}
+            setItems={setItems}
+            placeholder="Select a category"
+            style={styles.dropdown}
+            textStyle={{ color: "#333" }}
+            dropDownContainerStyle={{ backgroundColor: "#ffffff" }}
+          />
+          <Text style={styles.label}>Enter Spending Amount:</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Amount"
+            placeholderTextColor="#aaa"
+            keyboardType="numeric"
+            value={amount}
+            onChangeText={setAmount}
+          />
         </View>
+
+        {/* Buttons */}
+        <TouchableOpacity style={styles.button} onPress={handleSubmit}>
+          <Text style={styles.buttonText}>Add Spending</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.logoutbutton} onPress={handleLogout}>
+          <Text style={styles.buttonText}>Logout</Text>
+        </TouchableOpacity>
       </ScrollView>
-    </LinearGradient>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
+    backgroundColor: "#f5f7fa",
   },
-  scrollContainer: {
+  scrollContent: {
     padding: 20,
-    justifyContent: 'center',
-    flexGrow: 1,
+    paddingTop: 50,
   },
   header: {
-    fontSize: 28,
-    color: 'white',
-    fontWeight: 'bold',
-    marginBottom: 24,
-    textAlign: 'center',
+    fontSize: 34,
+    fontWeight: "bold",
+    textAlign: "left",
+    marginBottom: 30,
+    color: "#000000",
   },
-  userInfo: {
-    color: 'white',
+  cardRow: {
+    flexDirection: "column",
+    alignItems: "flex-start",
+    marginBottom: 20,
+    backgroundColor: "#fff",
+    padding: 15,
+    borderRadius: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  cardDetails: {
+    flex: 1,
+    justifyContent: "center",
+  },
+  cardName: {
     fontSize: 16,
-    marginBottom: 8,
-    textAlign: 'center',
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  cashbackText: {
+    fontSize: 14,
+    color: "#666",
   },
   dropdown: {
-    marginBottom: 20,
-    backgroundColor: '#2c2c2e',
-    borderColor: '#3a3a3c',
+    marginBottom: 10,
+    backgroundColor: "#ffffff",
+    borderColor: "#ddd",
   },
   input: {
     borderWidth: 1,
-    borderColor: '#3a3a3c',
-    backgroundColor: '#2c2c2e',
-    color: 'white',
+    borderColor: "#ccc",
+    backgroundColor: "#ffffff",
+    color: "#333",
     padding: 10,
-    marginBottom: 20,
+    marginTop: 10,
+    borderRadius: 8,
   },
   buttonWrapper: {
     marginTop: 12,
   },
+  label: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 8,
+    color: "#000",
+  },
+  button: {
+    backgroundColor: '#4CD964',  // Green background
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    marginBottom: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoutbutton: {
+    backgroundColor: '#FF3B30',  // Green background
+    paddingVertical: 12,
+    paddingHorizontal: 40,
+    borderRadius: 8,
+    marginBottom: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
 });
+
+export default ProfileScreen;
