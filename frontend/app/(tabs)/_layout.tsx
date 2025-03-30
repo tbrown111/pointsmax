@@ -47,7 +47,7 @@ export default function ProtectedTabsLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
+        tabBarActiveTintColor: '#399F4F',
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarBackground: TabBarBackground,

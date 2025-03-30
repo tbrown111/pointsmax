@@ -14,6 +14,8 @@ import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "../../services/firebaseConfig";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient"; // or use 'react-native-linear-gradient'
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Image } from 'expo-image';
 
 const { width } = Dimensions.get("window");
 
@@ -64,18 +66,23 @@ export default function HomeScreen() {
   };
 
   return (
-    <LinearGradient colors={["#FF7E5F", "#FD3A69"]} style={styles.container}>
+    <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.title}>PointsMax</Text>
-          <Text style={styles.subtitle}>
-            Maximize your points, maximize your life
-          </Text>
-        </View>
-
+        <Text style={styles.header}>Home</Text>
+        <View style={styles.homeContent}>
+        
+        <Text style={styles.title}>
+          <Text style={{ color: 'black' }}>Welcome to </Text>
+          <Text style={{ color: '#4CD964', fontStyle: 'italic' }}>PointsMax</Text>
+        </Text>
         {/* Content Cards */}
         <View style={styles.content}>
+        <Image 
+            source={require('../../assets/images/cc.gif')} // Path to your GIF
+            style={styles.gif} 
+            contentFit="contain"
+          />
           <TouchableOpacity
             style={styles.card}
             onPress={() => router.push("/track")}
@@ -97,18 +104,19 @@ export default function HomeScreen() {
               spending patterns.
             </Text>
           </TouchableOpacity>
-
-          {/* Call-to-Action Button */}
-          {/* <TouchableOpacity style={styles.button}>
-            <Text style={styles.buttonText}>Get Started</Text>
-          </TouchableOpacity> */}
+          
+        </View>
         </View>
       </ScrollView>
-    </LinearGradient>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#f5f7fa',
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
@@ -121,22 +129,20 @@ const styles = StyleSheet.create({
     paddingVertical: 50,
     paddingHorizontal: 20,
     flexGrow: 1,
-    justifyContent: "center",
   },
   header: {
-    alignItems: "center",
-    marginBottom: 30,
+    fontSize: 34,
+    fontWeight: "bold",
+    textAlign: "left",
+    marginBottom: 0,
+    color: '#000000',
   },
   title: {
-    fontSize: 36,
-    fontWeight: "700",
-    color: "#FFF",
-    letterSpacing: 2,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: "#FFF",
-    marginTop: 10,
+    fontSize: 28,
+    fontWeight: "bold",
+    color: "#000000",
+    textAlign: 'center',
+    paddingBottom: 20
   },
   content: {
     alignItems: "center",
@@ -179,5 +185,15 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "600",
     color: "#FD3A69",
+  },
+  homeContent: {
+    flex: 1,
+    alignItems: 'center',
+    paddingTop: 30
+  },
+  gif: {
+    width: 300,  // Adjust width
+    height: 200, // Adjust height
+    marginBottom: 20
   },
 });
