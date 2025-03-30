@@ -1,7 +1,7 @@
 // app/login.tsx
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, Button, Alert, StyleSheet } from 'react-native';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, getAuth } from "firebase/auth";
 import { auth } from "../services/firebaseConfig";
 import { useRouter } from "expo-router";
 
@@ -9,6 +9,10 @@ export default function LoginScreen() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [userId, setUserId] = useState('');
+    
+  
+  
 
   const handleSignIn = async () => {
     try {
@@ -24,12 +28,32 @@ export default function LoginScreen() {
     console.log("Sign Up button pressed"); // Confirm the function is called
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      
+      await initializeUserSpending(userCredential.user.uid)
       Alert.alert("Success", `User registered: ${userCredential.user.email}`);
     } catch (error: any) {
       console.log("Sign Up Error:", error); // Logs the entire error
       Alert.alert("Sign Up Error", error.message); // Shows an alert with the message
     }
   };
+
+  const initializeUserSpending = async (user_id: any) => {
+    try {
+      const response = await fetch('https://4d374e93-524c-4f29-b786-21fa45a08909.us-east-1.cloud.genez.io/initialize_spending', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: user_id
+        }),
+      });
+      const json = await response.json();
+      console.log(json); // Logs the response from the API
+    } catch {
+      console.error("Error initializing user spending:", error);
+    } 
+  }
 
   return (
     <View style={styles.container}>

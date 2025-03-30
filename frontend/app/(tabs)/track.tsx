@@ -17,6 +17,8 @@ import {
 import { Picker } from "@react-native-picker/picker";
 import { PieChart } from "react-native-chart-kit";
 import { Ionicons } from '@expo/vector-icons';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { Dropdown } from 'react-native-element-dropdown';
 
 
 const TrackSpending = () => {
@@ -31,36 +33,46 @@ const TrackSpending = () => {
   const [showChart, setShowChart] = useState(false);
 
   // Hard-coded spending entries for the list
-  const [spendings, setSpendings] = useState([
-    {
-      category: "Groceries",
-      amount: "25.50",
-      note: "Fruits and veggies",
-      date: "2023-03-25T14:23:00",
-    },
-    {
-      category: "Transport",
-      amount: "40.00",
-      note: "Bus tickets",
-      date: "2023-03-26T09:10:00",
-    },
-    {
-      category: "Entertainment",
-      amount: "15.00",
-      note: "Movie night",
-      date: "2023-03-27T20:05:00",
-    },
-  ]);
+  //const [spendings, setSpendings] = useState([]);
 
   // State for pie chart data
-  const [pieData, setPieData] = useState([]);
+  interface PieData {
+    name: string;
+    population: number; // You can replace 'any' with a more specific type if needed
+    color: string;
+    legendFontColor: string;
+    legendFontSize: number;
+  }
+  const [pieData, setPieData] = useState<PieData[]>([]);
+
+  const [userId, setUserId] = useState<string | null>(null);
+  const auth = getAuth();
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setUserId(user.uid); 
+      } else {
+        setUserId(null); 
+      }
+    });
+
+    return () => unsubscribe(); 
+  }, []);
+
+  useEffect(() => {
+    if (userId) {
+      // Call your API here, passing the userId
+      fetchPieData();  // Assume makeApiCall is the function that calls your API
+    }
+  }, [userId])
 
   // Function to fetch pie chart data from the GET endpoint
   const fetchPieData = async () => {
     try {
-      const response = await fetch(
-        "https://4d374e93-524c-4f29-b786-21fa45a08909.us-east-1.cloud.genez.io/spending_per_category?user_id=jonathan"
-      );
+      console.log(userId)
+      const url = `https://4d374e93-524c-4f29-b786-21fa45a08909.us-east-1.cloud.genez.io/spending_per_category?user_id=${userId}`;
+      const response = await fetch(url);
       const result = await response.json();
       // Assuming the endpoint returns an object like:
       // { Travel: 35, Dining: 40, Grocery: 15 }
@@ -93,10 +105,6 @@ const TrackSpending = () => {
     }
   };
 
-  // Fetch the pie chart data when the component mounts
-  useEffect(() => {
-    fetchPieData();
-  }, []);
 
   // Handle adding a new spending and making a POST request
   const handleAddSpending = async () => {
@@ -106,6 +114,7 @@ const TrackSpending = () => {
     }
 
     try {
+      console.log(userId)
       const response = await fetch(
         "https://4d374e93-524c-4f29-b786-21fa45a08909.us-east-1.cloud.genez.io/add_spending",
         {
@@ -114,8 +123,8 @@ const TrackSpending = () => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            user_id: "jonathan",
-            spending_category: spendingCategory,
+            user_id: userId,
+            spend_category: spendingCategory,
             amt: parseFloat(spendingAmount),
           }),
         }
@@ -131,7 +140,7 @@ const TrackSpending = () => {
           note: spendingNote,
           date: new Date().toISOString(),
         };
-        setSpendings((prev) => [...prev, newSpending]);
+        //((prev) => [...prev, newSpending]);
 
         Alert.alert("Spending Added", "Your spending has been recorded!");
         // Reset form fields
@@ -201,7 +210,7 @@ const TrackSpending = () => {
           )}
         </ScrollView>
         {/* Transaction List */}
-        <FlatList
+        {/* <FlatList
           data={spendings}
           keyExtractor={(item, index) => index.toString()} // Use index as key if there isn't a unique id
           renderItem={({ item }) => (
@@ -219,9 +228,9 @@ const TrackSpending = () => {
                 {new Date(item.date).toLocaleString()}
               </Text>
             </View>
-          )}
-          contentContainerStyle={styles.listContainer}
-        />
+          )} */}
+          {/* contentContainerStyle={styles.listContainer}
+        /> */}
       </ScrollView>
       {/* Add Card Button */}
       <TouchableOpacity 
@@ -248,7 +257,7 @@ const TrackSpending = () => {
                   onValueChange={(itemValue) => setSpendingCategory(itemValue)}
                   style={styles.picker}
                 >
-                  <Picker.Item label="Select category..." value="" />
+                  <Picker.Item label="S" value="" style={{color:'blue', fontSize:1}}/>
                   <Picker.Item label="Travel" value="Travel" />
                   <Picker.Item label="Dining" value="Dining" />
                   <Picker.Item label="Grocery" value="Grocery" />
@@ -475,11 +484,18 @@ spendingItemDate: {
     borderColor: "#ddd",
   },
   picker: {
-    backgroundColor: "#ffffff",
+    height: 50,
+    backgroundColor: '#f0f0f0',  // light gray for background
     borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 6,
+    borderColor: '#ccc',  // gray border
+    borderRadius: 4, // optional for rounded corners
   },
+  // picker: {
+  //   backgroundColor: "#ffffff",
+  //   borderWidth: 1,
+  //   borderColor: "#ddd",
+  //   borderRadius: 6,
+  // },
   modalButtons: {
     flexDirection: "row",
     justifyContent: "space-between",
