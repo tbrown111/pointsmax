@@ -1,13 +1,13 @@
-express = require('express');
-db = require('./db/db.js');
-dotenv = require('dotenv');
-functions = require('firebase-functions')
-
-
+express = require("express");
+db = require("./db/db.js");
+dotenv = require("dotenv");
+functions = require("firebase-functions");
+const cors = require("cors");
 const app = express();
+app.use(cors());
 app.use(express.json());
 
-dotenv.config()
+dotenv.config();
 
 //for local hosting
 const PORT = 3000;
@@ -15,26 +15,26 @@ const PORT = 3000;
 //for remote hosting
 app.listen(3000, () => {
   console.log(
-    'Server is running on port 8080. Check the app on http://localhost:8080'
+    "Server is running on port 8080. Check the app on http://localhost:8080"
   );
 });
 
-app.get('/optimal_card', async (req, res) => {
+app.get("/optimal_card", async (req, res) => {
   const { user_id, category } = req.query;
 
-  const db_user_ref = 'Users/' + user_id;
+  const db_user_ref = "Users/" + user_id;
   const user_ref = db.ref(db_user_ref);
 
   try {
-    const user_snapshot = await user_ref.once('value');
+    const user_snapshot = await user_ref.once("value");
     const user_cards = user_snapshot.val();
 
     let best_card = [];
     let best_value = 0;
     for (let card of Object.keys(user_cards)) {
-      const db_rewards_ref = 'Rewards/' + card;
+      const db_rewards_ref = "Rewards/" + card;
       const rewards_ref = db.ref(db_rewards_ref);
-      const rewards_snapshot = await rewards_ref.once('value');
+      const rewards_snapshot = await rewards_ref.once("value");
       if (rewards_snapshot.exists()) {
         const rewards = rewards_snapshot.val();
         const reward_per_category = rewards[category];
@@ -51,27 +51,27 @@ app.get('/optimal_card', async (req, res) => {
       best_value: best_value,
     });
   } catch (error) {
-    console.error('Error:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    console.error("Error:", error);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
 //example for  post
-app.post('/add_card', async (req, res) => {
+app.post("/add_card", async (req, res) => {
   const user_id = req.body.user_id;
   const card_id = req.body.card_id;
   console.log(user_id);
   console.log(card_id);
   try {
-    const db_ref = 'Users/' + user_id;
+    const db_ref = "Users/" + user_id;
     const users_ref = db.ref(db_ref);
-    const snapshot = await users_ref.once('value');
+    const snapshot = await users_ref.once("value");
     let cards = [];
     console.log(snapshot.val());
     if (snapshot.exists()) {
       cards = snapshot.val();
       if (!cards.hasOwnProperty(card_id)) {
-        cards[String(card_id)] = '';
+        cards[String(card_id)] = "";
         await users_ref.set(cards);
         return res
           .status(200)
@@ -84,29 +84,29 @@ app.post('/add_card', async (req, res) => {
       }
     }
   } catch (error) {
-    console.error('Error updating database:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    console.error("Error updating database:", error);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
 //to be called when a user is registered
-app.post('/initialize_spending', async (req, res) => {
+app.post("/initialize_spending", async (req, res) => {
   //parse request body
   const user_id = req.body.user_id;
 
   try {
-    const db_ref = 'User_Transactions/' + user_id;
+    const db_ref = "User_Transactions/" + user_id;
     const user_transactions_ref = db.ref(db_ref);
 
     await user_transactions_ref.set({ Dining: 0, Travel: 0, Grocery: 0 });
     return res.status(200).json({ message: `User spending initialized in db` });
   } catch (error) {
-    console.error('Error updating database:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    console.error("Error updating database:", error);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
-app.post('/add_spending', async (req, res) => {
+app.post("/add_spending", async (req, res) => {
   //parse request body
   const user_id = req.body.user_id;
   const spend_category = req.body.spend_category; //travel, dining, grocery
@@ -114,9 +114,9 @@ app.post('/add_spending', async (req, res) => {
 
   try {
     //reference a user's collection
-    const db_ref = 'User_Transactions/' + user_id + '/' + spend_category;
+    const db_ref = "User_Transactions/" + user_id + "/" + spend_category;
     const user_transactions_ref = db.ref(db_ref);
-    const snapshot = await user_transactions_ref.once('value');
+    const snapshot = await user_transactions_ref.once("value");
 
     let curr_amt = 0;
 
@@ -128,34 +128,34 @@ app.post('/add_spending', async (req, res) => {
       return res.status(200).json({ message: `Spending updated successfully` });
     }
   } catch (error) {
-    console.error('Error updating database:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    console.error("Error updating database:", error);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
 //add get endpoint to return the user's highest spending category
 //param : user_id
-app.get('/max_spend_category', async (req, res) => {
+app.get("/max_spend_category", async (req, res) => {
   //parse query
   const { user_id } = req.query;
 
   //reference user's database collection
-  const db_user_trans_ref = 'User_Transactions/' + user_id;
+  const db_user_trans_ref = "User_Transactions/" + user_id;
   const user_trans_ref = db.ref(db_user_trans_ref);
 
   try {
     //reference a user's collection
-    const spend_categories = ['Dining', 'Travel', 'Grocery'];
+    const spend_categories = ["Dining", "Travel", "Grocery"];
     let max_amt = 0;
-    let max_category = '';
+    let max_category = "";
     for (let i = 0; i < spend_categories.length; i++) {
       console.log(i);
       const curr_category = spend_categories[i];
 
-      const db_ref = 'User_Transactions/' + user_id + '/' + curr_category;
+      const db_ref = "User_Transactions/" + user_id + "/" + curr_category;
 
       const user_trans_ref = db.ref(db_ref);
-      const snapshot = await user_trans_ref.once('value');
+      const snapshot = await user_trans_ref.once("value");
 
       if (snapshot.exists()) {
         const curr_category_amt = snapshot.val();
@@ -170,33 +170,33 @@ app.get('/max_spend_category', async (req, res) => {
       max_spending_category: max_category,
     });
   } catch (error) {
-    console.error('Error getting maximum: ', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    console.error("Error getting maximum: ", error);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
 //endpoint to get each user's spendign per category
 //param : user_id
-app.get('/spending_per_category', async (req, res) => {
+app.get("/spending_per_category", async (req, res) => {
   //parse query
   const { user_id } = req.query;
 
   //reference user's database collection
-  const db_user_trans_ref = 'User_Transactions/' + user_id;
+  const db_user_trans_ref = "User_Transactions/" + user_id;
   const user_trans_ref = db.ref(db_user_trans_ref);
 
   try {
     //reference a user's collection
-    const spend_categories = ['Dining', 'Travel', 'Grocery'];
+    const spend_categories = ["Dining", "Travel", "Grocery"];
     let spending = [];
     for (let i = 0; i < spend_categories.length; i++) {
       console.log(i);
       const curr_category = spend_categories[i];
 
-      const db_ref = 'User_Transactions/' + user_id + '/' + curr_category;
+      const db_ref = "User_Transactions/" + user_id + "/" + curr_category;
 
       const user_trans_ref = db.ref(db_ref);
-      const snapshot = await user_trans_ref.once('value');
+      const snapshot = await user_trans_ref.once("value");
 
       if (snapshot.exists()) {
         const curr_category_amt = snapshot.val();
@@ -209,30 +209,30 @@ app.get('/spending_per_category', async (req, res) => {
       Grocery: spending[2],
     });
   } catch (error) {
-    console.error('Error getting maximum: ', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    console.error("Error getting maximum: ", error);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
 //get up to 10 recommended cards based on user's max spend category
-app.get('/spending_based_recommended_cards', async (req, res) => {
+app.get("/spending_based_recommended_cards", async (req, res) => {
   //parse query
   const { user_id } = req.query;
   const max_category = await getMaxSpendingCategory(user_id);
 
   let category_id_map = new Map();
-  category_id_map.set('Travel', 176638649);
-  category_id_map.set('Dining', 160378660);
-  category_id_map.set('Grocery', 160378660);
+  category_id_map.set("Travel", 176638649);
+  category_id_map.set("Dining", 160378660);
+  category_id_map.set("Grocery", 160378660);
   //travel, dining, grocery
 
   const max_category_id = category_id_map.get(max_category);
   const url = `https://rewards-credit-card-api.p.rapidapi.com/creditcard-spendbonuscategory-categorycard/${max_category_id}`;
   const options = {
-    method: 'GET',
+    method: "GET",
     headers: {
-      'x-rapidapi-key': process.env.RAPIDAPI_KEY,
-      'x-rapidapi-host': 'rewards-credit-card-api.p.rapidapi.com',
+      "x-rapidapi-key": process.env.RAPIDAPI_KEY,
+      "x-rapidapi-host": "rewards-credit-card-api.p.rapidapi.com",
     },
   };
   try {
@@ -245,11 +245,11 @@ app.get('/spending_based_recommended_cards', async (req, res) => {
     result.forEach((item) => {
       const ci = item.cardIssuer;
       if (
-        ci == 'Chase' ||
-        ci == 'American Express' ||
-        ci == 'Bank of America' ||
-        ci == 'Capital One' ||
-        ci == 'Citi'
+        ci == "Chase" ||
+        ci == "American Express" ||
+        ci == "Bank of America" ||
+        ci == "Capital One" ||
+        ci == "Citi"
       ) {
         const jsonObject = {
           cardName: item.cardName,
@@ -268,7 +268,7 @@ app.get('/spending_based_recommended_cards', async (req, res) => {
 
     return res.status(200).json(top_cards);
   } catch (error) {
-    console.error('Error Recommending Cards:', error);
+    console.error("Error Recommending Cards:", error);
   }
 });
 
@@ -276,19 +276,19 @@ app.get('/spending_based_recommended_cards', async (req, res) => {
 async function getMaxSpendingCategory(user_id) {
   try {
     // Define spending categories
-    const spend_categories = ['Dining', 'Travel', 'Grocery'];
+    const spend_categories = ["Dining", "Travel", "Grocery"];
 
     let max_amt = 0;
-    let max_category = '';
+    let max_category = "";
 
     // Loop through all categories
     for (let i = 0; i < spend_categories.length; i++) {
       const curr_category = spend_categories[i];
-      const db_ref = 'User_Transactions/' + user_id + '/' + curr_category;
+      const db_ref = "User_Transactions/" + user_id + "/" + curr_category;
 
       // Get reference to user's category in Firebase
       const user_trans_ref = db.ref(db_ref);
-      const snapshot = await user_trans_ref.once('value');
+      const snapshot = await user_trans_ref.once("value");
 
       if (snapshot.exists()) {
         const curr_category_amt = snapshot.val();
@@ -302,9 +302,9 @@ async function getMaxSpendingCategory(user_id) {
     // Return the result
     return max_category;
   } catch (error) {
-    console.error('Error getting maximum spending category: ', error);
-    throw new Error('Internal server error');
+    console.error("Error getting maximum spending category: ", error);
+    throw new Error("Internal server error");
   }
 }
 
-exports.api = functions.https.onRequest(app)
+exports.api = functions.https.onRequest(app);
