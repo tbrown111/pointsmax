@@ -15,7 +15,7 @@ const PORT = 3000;
 //for remote hosting
 app.listen(3000, () => {
   console.log(
-    'Server is running on port 8080. Check the app on http://localhost:8080'
+    'Server is running on port 3000. Check the app on http://localhost:3000'
   );
 });
 
@@ -306,5 +306,49 @@ async function getMaxSpendingCategory(user_id) {
     throw new Error('Internal server error');
   }
 }
+
+//get 10 nearby businesses
+app.get('/nearby_businesses', async (req, res) => {
+  //parse query
+  const { latitude, longitude } = req.query;
+  console.log(latitude, longitude)
+  includedTypes = ["gas_station", "car_wash", "car_rental", "amusement_park", "bowling_alley", "movie_theater", "restaurant", "cafe", "bakery", "bar", "diner", "deli", "fast_food_restaurant", "hotel", "inn", "motel", "lodging", "barber_shop", "hair_salon", "florist", "beauty_salon", "nail_salon", "market", "auto_parts_store", "book_store", "butcher_shop", "clothing_store", "convenience_store", "department_store",
+    "electronics_store", "food_store", "furniture_store", "gift_shop", "grocery_store", "hardware_store", "home_goods_store", "home_improvement_store", "liquor_store", "market", "pet_store", "shoe_store", "sporting_goods_store",
+    "store", "supermarket", "warehouse_store", "wholesaler", "gym", "bus_station", "subway_station", "train_station"]
+  console.log(includedTypes.length)
+  const url = `https://places.googleapis.com/v1/places:searchNearby`;
+  const options = {
+    method: 'POST',
+    headers: {
+      'X-Goog-Api-Key': process.env.PLACES_API_KEY,
+      'X-Goog-FieldMask': 'places.primaryTypeDisplayName,places.displayName',
+    },
+    body: JSON.stringify({
+      "includedTypes": includedTypes, 
+      "maxResultCount": 10,
+      "locationRestriction":{
+        "circle": {
+          "center": {
+            "latitude": 33.776587,
+            "longitude": -84.389539
+          },
+          "radius": 50.0
+          }
+       }
+    })
+  };
+  try {
+    const response = await fetch(url, options);
+    const result = await response.json();
+
+    const eligible_cards = [];
+    console.log(result);
+
+    return res.status(200).json(result);
+  } catch (error) {
+    console.error('Error Recommending Cards:', error);
+  }
+});
+
 
 exports.api = functions.https.onRequest(app)
