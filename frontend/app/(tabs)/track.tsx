@@ -16,12 +16,15 @@ import {
 import { Picker } from "@react-native-picker/picker";
 import { PieChart } from "react-native-chart-kit";
 import { Ionicons } from "@expo/vector-icons";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
 
 const TrackSpending = () => {
+  const [userId, setUserId] = useState("");
+  const [userEmail, setUserEmail] = useState("");
   const [spendingCategory, setSpendingCategory] = useState("");
   const [spendingAmount, setSpendingAmount] = useState("");
 
-  // Local state to store individual spending transactions
+  // Store individual spending transactions from server
   const [spendings, setSpendings] = useState<any[]>([]);
 
   // Control the visibility of the Modal
@@ -33,14 +36,32 @@ const TrackSpending = () => {
   // Data for the Pie Chart (fetched from Firebase)
   const [pieData, setPieData] = useState<any[]>([]);
 
-  // Fetch the user's spending per category from Firebase
+  // When user logs in or out, update state
+  useEffect(() => {
+    const auth = getAuth();
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setUserId(user.uid);
+        setUserEmail(user.email ?? "");
+      } else {
+        setUserId("");
+        setUserEmail("");
+        setSpendings([]);
+        setPieData([]);
+      }
+    });
+  }, []);
+
+  // Helper: Fetch the user's spending breakdown for the Pie Chart
   const fetchPieData = async () => {
+    if (!userId) return;
     try {
       const response = await fetch(
-        "http://localhost:3000/spending_per_category?user_id=jonathan"
+        `https://api-zto2acvx6a-uc.a.run.app/spending_per_category?user_id=${userId}/Aggregated`
       );
       const result = await response.json();
-      // result should look like: { Dining: number, Travel: number, Grocery: number }
+      console.log("Pie data from server:", result);
+      // result shape: { Dining: number, Travel: number, Grocery: number }
       const chartData = [
         {
           name: "Dining",
@@ -70,12 +91,34 @@ const TrackSpending = () => {
     }
   };
 
-  // Load the chart data on mount
-  useEffect(() => {
-    fetchPieData();
-  }, []);
+  // Helper: Fetch transactions for the current user
+  const fetchTransactions = async () => {
+    if (!userId) return;
+    try {
+      const response = await fetch(
+        `https://api-zto2acvx6a-uc.a.run.app/transactions?user_id=${userId}`
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch user transactions");
+      }
+      const data = await response.json();
+      // data should be an array of transaction objects: [{id, category, amount, timestamp}, ...]
+      console.log("Transactions from server:", data);
+      setSpendings(data);
+    } catch (error) {
+      console.error("Error fetching transactions:", error);
+    }
+  };
 
-  // Handle adding a new spending and sending a POST request to Firebase
+  // Fetch transactions & chart data whenever userId changes (i.e., once user is known)
+  useEffect(() => {
+    if (userId) {
+      fetchTransactions();
+      fetchPieData();
+    }
+  }, [userId]);
+
+  // Handle adding a new spending and sending a POST request to the server
   const handleAddSpending = async () => {
     if (!spendingCategory || !spendingAmount) {
       Alert.alert("Error", "Please select a category and enter an amount.");
@@ -83,32 +126,30 @@ const TrackSpending = () => {
     }
 
     try {
-      const response = await fetch("http://localhost:3000/add_spending", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          user_id: "jonathan",
-          spend_category: spendingCategory,
-          amt: parseFloat(spendingAmount),
-        }),
-      });
+      const response = await fetch(
+        "https://api-zto2acvx6a-uc.a.run.app/add_spending",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            user_id: userId,
+            spend_category: spendingCategory,
+            amt: parseFloat(spendingAmount),
+          }),
+        }
+      );
 
       if (response.ok) {
         Alert.alert("Success", "Your spending has been recorded!");
-        // Create a new spending transaction entry
-        const newSpending = {
-          category: spendingCategory,
-          amount: spendingAmount,
-          date: new Date().toISOString(),
-        };
-        // Update the local list of transactions (latest first)
-        setSpendings((prev) => [newSpending, ...prev]);
+        // Clear inputs & close the modal
         setSpendingCategory("");
         setSpendingAmount("");
         setModalVisible(false);
-        // Refresh the pie chart data after adding a new spending
+
+        // Refresh both the transactions list and the chart data
+        fetchTransactions();
         fetchPieData();
       } else {
         const data = await response.json();
@@ -122,6 +163,7 @@ const TrackSpending = () => {
         "Error",
         "There was an error adding your spending. Please try again."
       );
+      console.error(error);
     }
   };
 
@@ -178,12 +220,12 @@ const TrackSpending = () => {
             {spendings.length === 0 ? (
               <Text style={styles.noTransactions}>No transactions yet.</Text>
             ) : (
-              spendings.map((item, index) => (
-                <View key={index} style={styles.spendingItem}>
+              spendings.map((item) => (
+                <View key={item.id} style={styles.spendingItem}>
                   <Text style={styles.spendingCategory}>{item.category}</Text>
                   <Text style={styles.spendingAmount}>${item.amount}</Text>
                   <Text style={styles.spendingDate}>
-                    {new Date(item.date).toLocaleString()}
+                    {new Date(item.timestamp).toLocaleString()}
                   </Text>
                 </View>
               ))

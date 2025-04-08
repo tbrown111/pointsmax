@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -11,55 +11,68 @@ import {
   Platform,
   TouchableWithoutFeedback,
   Keyboard,
-} from 'react-native';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../services/firebaseConfig';
-import { useRouter } from 'expo-router';
-import axios from 'axios';
+} from "react-native";
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+} from "firebase/auth";
+import { auth } from "../services/firebaseConfig";
+import { useRouter } from "expo-router";
+import axios from "axios";
 
 export default function LoginScreen() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   const handleSignIn = async () => {
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      Alert.alert('Welcome', `Signed in as: ${userCredential.user.email}`);
-      router.replace('/'); // Navigate to main screen
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+      Alert.alert("Welcome", `Signed in as: ${userCredential.user.email}`);
+      router.replace("/"); // Navigate to main screen
     } catch (error: any) {
-      Alert.alert('Sign In Error', error.message);
+      Alert.alert("Sign In Error", error.message);
     }
   };
 
   const handleSignUp = async () => {
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
       const userId = userCredential.user.uid;
 
       // Initialize spending data on backend
       await axios.post(
-        'https://4d374e93-524c-4f29-b786-21fa45a08909.us-east-1.cloud.genez.io/initialize_spending',
+        "https://api-zto2acvx6a-uc.a.run.app/initialize_spending",
         { user_id: userId },
-        { headers: { 'Content-Type': 'application/json' } }
+        { headers: { "Content-Type": "application/json" } }
       );
 
-      Alert.alert('Success', `User registered: ${userCredential.user.email}`);
+      Alert.alert("Success", `User registered: ${userCredential.user.email}`);
     } catch (error: any) {
-      Alert.alert('Sign Up Error', error.message);
+      Alert.alert("Sign Up Error", error.message);
     }
   };
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={styles.container}
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <ScrollView contentContainerStyle={styles.scrollView}>
           <Text style={styles.header}>
-            <Text style={{ color: 'black' }}>Welcome to </Text>
-            <Text style={{ color: '#4CD964', fontStyle: 'italic' }}>PointsMax</Text>
+            <Text style={{ color: "black" }}>Welcome to </Text>
+            <Text style={{ color: "#4CD964", fontStyle: "italic" }}>
+              PointsMax
+            </Text>
           </Text>
 
           <Text style={styles.title}>Log In / Sign Up</Text>
@@ -102,62 +115,62 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
   scrollView: {
     flexGrow: 1,
-    justifyContent: 'center',
+    justifyContent: "center",
     padding: 24,
   },
   title: {
     fontSize: 24,
-    color: '#000',
+    color: "#000",
     marginBottom: 16,
-    textAlign: 'center',
+    textAlign: "center",
   },
   label: {
     fontSize: 16,
-    color: '#000',
+    color: "#000",
     marginBottom: 4,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: "#ddd",
     padding: 8,
     marginBottom: 12,
-    color: '#000',
+    color: "#000",
   },
   header: {
     fontSize: 28,
-    fontWeight: 'bold',
-    color: '#000',
-    textAlign: 'center',
+    fontWeight: "bold",
+    color: "#000",
+    textAlign: "center",
     paddingBottom: 40,
   },
   signInButton: {
-    backgroundColor: '#4CD964',
+    backgroundColor: "#4CD964",
     padding: 12,
     borderRadius: 8,
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 10,
-    width: '100%',
+    width: "100%",
   },
   signUpButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: "#007AFF",
     padding: 12,
     borderRadius: 8,
-    alignItems: 'center',
-    width: '100%',
+    alignItems: "center",
+    width: "100%",
   },
   buttonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   betweenText: {
-    textAlign: 'center',
+    textAlign: "center",
     fontSize: 16,
-    color: '#555',
+    color: "#555",
     marginVertical: 8,
   },
 });
