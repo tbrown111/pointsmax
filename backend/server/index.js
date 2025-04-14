@@ -1,11 +1,15 @@
-express = require("express");
-db = require("./db/db.js");
-dotenv = require("dotenv");
-functions = require("firebase-functions");
-const cors = require("cors");
+express = require('express');
+db = require('./db/db.js');
+dotenv = require('dotenv');
+functions = require('firebase-functions')
+const cors = require("cors")
+
+
+
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(cors());
 
 dotenv.config();
 
@@ -107,28 +111,66 @@ app.post("/initialize_spending", async (req, res) => {
 });
 
 app.post("/add_spending", async (req, res) => {
-  //parse request body
-  const user_id = req.body.user_id;
-  const spend_category = req.body.spend_category; //travel, dining, grocery
-  const amt = req.body.amt;
+  const { user_id, spend_category, amt } = req.body;
 
   try {
-    //reference a user's collection
-    const db_ref = "User_Transactions/" + user_id + "/" + spend_category;
-    const user_transactions_ref = db.ref(db_ref);
-    const snapshot = await user_transactions_ref.once("value");
+    // 1. Push a new transaction under "User_Transactions/<user_id>/Transactions"
+    const transactionsRef = db.ref(`User_Transactions/${user_id}/Transactions`);
+    const newTxnRef = transactionsRef.push();
+    await newTxnRef.set({
+      category: spend_category,
+      amount: amt,
+      timestamp: Date.now(),
+    });
 
-    let curr_amt = 0;
+    // 2. Update the aggregated total for that category
+    const categoryRef = db.ref(
+      `User_Transactions/${user_id}/Aggregated/${spend_category}`
+    );
+    const snapshot = await categoryRef.once("value");
+    let curr_amt = snapshot.val() || 0;
 
-    if (snapshot.exists()) {
-      //set cards to user's existing cards (this is a map)
-      curr_amt = snapshot.val();
-      curr_amt += amt;
-      await user_transactions_ref.set(curr_amt);
-      return res.status(200).json({ message: `Spending updated successfully` });
-    }
+    curr_amt += amt;
+    await categoryRef.set(curr_amt);
+
+    return res
+      .status(200)
+      .json({ message: "Spending (transaction) saved successfully" });
   } catch (error) {
-    console.error("Error updating database:", error);
+    console.error("Error saving transaction:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+app.get("/transactions", async (req, res) => {
+  const { user_id } = req.query;
+
+  try {
+    const transactionsRef = db.ref(`User_Transactions/${user_id}/Transactions`);
+    const snapshot = await transactionsRef.once("value");
+
+    if (!snapshot.exists()) {
+      // If no transactions yet, return an empty array
+      return res.status(200).json([]);
+    }
+
+    const transactionsData = snapshot.val();
+    // Convert the object of objects into an array
+    // Each transaction will have an auto-generated key like "-Mxyz..."
+    // We'll place that key inside each transaction object for reference
+    const transactionsArray = Object.keys(transactionsData).map((key) => {
+      return {
+        id: key,
+        ...transactionsData[key],
+      };
+    });
+
+    // Optionally sort by timestamp descending
+    transactionsArray.sort((a, b) => b.timestamp - a.timestamp);
+
+    return res.status(200).json(transactionsArray);
+  } catch (error) {
+    console.error("Error retrieving transactions:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -136,41 +178,34 @@ app.post("/add_spending", async (req, res) => {
 //add get endpoint to return the user's highest spending category
 //param : user_id
 app.get("/max_spend_category", async (req, res) => {
-  //parse query
   const { user_id } = req.query;
 
-  //reference user's database collection
-  const db_user_trans_ref = "User_Transactions/" + user_id;
-  const user_trans_ref = db.ref(db_user_trans_ref);
-
   try {
-    //reference a user's collection
-    const spend_categories = ["Dining", "Travel", "Grocery"];
-    let max_amt = 0;
-    let max_category = "";
-    for (let i = 0; i < spend_categories.length; i++) {
-      console.log(i);
-      const curr_category = spend_categories[i];
+    // We'll directly retrieve the entire "Aggregated" node
+    const aggregatesRef = db.ref(`User_Transactions/${user_id}/Aggregated`);
+    const snapshot = await aggregatesRef.once("value");
 
-      const db_ref = "User_Transactions/" + user_id + "/" + curr_category;
+    if (!snapshot.exists()) {
+      return res.status(200).json({ max_spending_category: null });
+    }
 
-      const user_trans_ref = db.ref(db_ref);
-      const snapshot = await user_trans_ref.once("value");
+    const aggregatedData = snapshot.val();
+    // aggregatedData is something like:
+    //   { Dining: 120, Travel: 70, Grocery: 180 }
 
-      if (snapshot.exists()) {
-        const curr_category_amt = snapshot.val();
-        console.log(curr_category, curr_category_amt);
-        if (curr_category_amt > max_amt) {
-          max_amt = curr_category_amt;
-          max_category = curr_category;
-        }
+    let maxCategory = "";
+    let maxAmount = 0;
+
+    for (const cat in aggregatedData) {
+      if (aggregatedData[cat] > maxAmount) {
+        maxAmount = aggregatedData[cat];
+        maxCategory = cat;
       }
     }
-    return res.status(200).json({
-      max_spending_category: max_category,
-    });
+
+    return res.status(200).json({ max_spending_category: maxCategory });
   } catch (error) {
-    console.error("Error getting maximum: ", error);
+    console.error("Error getting maximum spend category: ", error);
     return res.status(500).json({ error: "Internal server error" });
   }
 });
