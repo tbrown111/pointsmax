@@ -104,6 +104,15 @@ export default function ProtectedTabsLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="nearby"
+        options={{
+          title: "Nearby",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="location" size={size} color={color} />
+          ),
+        }}
+      />
       
       
     </Tabs>
