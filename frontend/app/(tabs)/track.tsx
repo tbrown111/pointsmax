@@ -1,5 +1,3 @@
-import { askOpenAI } from './openaiHelper';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -194,34 +192,6 @@ const TrackSpending = () => {
               <Text style={styles.chartToggleButtonText}>View Chart</Text>
             </TouchableOpacity>
           </View>
-          
-          <TouchableOpacity
-            style={[styles.chartToggleButton, { backgroundColor: "#33691e", marginTop: 10 }]}
-            onPress={async () => {
-              try {
-                console.log("🔍 Attempting to get cards and transactions...");
-                const storedCards = await AsyncStorage.getItem("userCards");
-                const userCards = storedCards ? JSON.parse(storedCards) : [];
-                console.log("💳 Retrieved cards:", userCards);
-            
-                console.log("📊 Transactions:", spendings);
-            
-                const prompt = `Here are the user's credit cards: ${JSON.stringify(userCards)}. Here are their recent transactions: ${JSON.stringify(spendings)}. Please summarize both sets of data.`;
-            
-                console.log("📝 Prompt to OpenAI:", prompt);
-            
-                const result = await askOpenAI(prompt);
-                console.log("✅ OpenAI result:", result);
-            
-                Alert.alert("OpenAI Response", result ?? "No result");
-              } catch (err) {
-                console.error("❌ Error during OpenAI request:", err);
-                Alert.alert("Error", "Could not query OpenAI.");
-              }
-            }}
-          >
-            <Text style={styles.chartToggleButtonText}>Ask OpenAI</Text>
-          </TouchableOpacity> 
 
           {/* Conditionally Render the Pie Chart */}
           {showChart && pieData.length > 0 && (
