@@ -134,6 +134,24 @@ app.get('/cards', (req, res) => {
   res.json(creditCards);
 });
 
+const allCreditCardDetails = require('./card_details.js'); 
+app.get("/card_details", (req, res) => {
+  const { cardKey } = req.query;
+
+  if (!cardKey) {
+    return res.status(400).json({ error: "Missing cardKey parameter" });
+  }
+
+  const cardDetails = allCreditCardDetails.find(card => card.cardKey === cardKey);
+
+  if (!cardDetails) {
+    return res.status(404).json({ error: "Card not found" });
+  }
+
+  return res.status(200).json(cardDetails);
+});
+
+
 
 //example for  post
 app.post("/add_card", async (req, res) => {
