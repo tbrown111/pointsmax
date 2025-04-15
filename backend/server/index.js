@@ -134,8 +134,7 @@ app.get('/cards', (req, res) => {
   res.json(creditCards);
 });
 
-const allCreditCardDetails = require('./card_details.js'); // update path accordingly
-
+const allCreditCardDetails = require('./card_details.js'); 
 app.get("/card_details", (req, res) => {
   const { cardKey } = req.query;
 
