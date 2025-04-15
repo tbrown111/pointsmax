@@ -1,5 +1,3 @@
-import { askOpenAI } from './openaiHelper';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -194,8 +192,6 @@ const TrackSpending = () => {
               <Text style={styles.chartToggleButtonText}>View Chart</Text>
             </TouchableOpacity>
           </View>
-<<<<<<< HEAD
-=======
           
           <TouchableOpacity
             style={[styles.chartToggleButton, { backgroundColor: "#33691e", marginTop: 10 }]}
@@ -224,7 +220,6 @@ const TrackSpending = () => {
           >
             <Text style={styles.chartToggleButtonText}>Ask OpenAI</Text>
           </TouchableOpacity> 
->>>>>>> 18b601e (starting to integrate openai)
 
           {/* Conditionally Render the Pie Chart */}
           {showChart && pieData.length > 0 && (

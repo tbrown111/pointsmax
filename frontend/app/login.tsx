@@ -11,14 +11,12 @@ import {
   Platform,
   TouchableWithoutFeedback,
   Keyboard,
-} from "react-native";
-import {
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-} from "firebase/auth";
-import { auth } from "../services/firebaseConfig";
-import { useRouter } from "expo-router";
-import axios from "axios";
+} from 'react-native';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '../services/firebaseConfig';
+import { useRouter } from 'expo-router';
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -27,13 +25,16 @@ export default function LoginScreen() {
 
   const handleSignIn = async () => {
     try {
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-      Alert.alert("Welcome", `Signed in as: ${userCredential.user.email}`);
-      router.replace("/"); // Navigate to main screen
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const onboardingComplete = await AsyncStorage.getItem("onboardingComplete");
+
+      Alert.alert('Welcome', `Signed in as: ${userCredential.user.email}`);
+
+      if (onboardingComplete === 'true') {
+        router.replace('/'); // Navigate to main screen
+      } else {
+        router.replace('/questionnaire'); // Navigate to questionnaire screen
+      }
     } catch (error: any) {
       Alert.alert("Sign In Error", error.message);
     }
@@ -55,7 +56,11 @@ export default function LoginScreen() {
         { headers: { "Content-Type": "application/json" } }
       );
 
-      Alert.alert("Success", `User registered: ${userCredential.user.email}`);
+      // Save onboarding flag to trigger questionnaire
+      await AsyncStorage.setItem("onboardingComplete", "false");
+
+      Alert.alert('Success', `User registered: ${userCredential.user.email}`);
+      router.replace('/questionnaire'); // Redirect to onboarding
     } catch (error: any) {
       Alert.alert("Sign Up Error", error.message);
     }

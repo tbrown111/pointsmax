@@ -340,25 +340,27 @@ import {
   SafeAreaView,
   ScrollView,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { getDatabase, ref, get } from "firebase/database";
+import { askOpenAI } from "./openaiHelper";
 
-// Placeholder image map for known card IDs
 const cardImages: Record<string, any> = {
   "AMEX_GOLD": require("../../assets/cards/amex-gold.png"),
   "CSP": require("../../assets/cards/chase-sapphire-preferred.png"),
   "CAP1_SAVOR": require("../../assets/cards/capital-one-savor.png"),
-  // Add more as needed
 };
 
 const categories = ["Dining", "Travel", "Grocery"];
 
 const ChartPage = () => {
   const [userId, setUserId] = useState("");
-  const [userCards, setUserCards] = useState<string[]>([]);
-  const [recommendations, setRecommendations] = useState<Record<string, string[]>>({});
-  const [bestValueByCategory, setBestValueByCategory] = useState<Record<string, number>>({});
+  const [userCards, setUserCards] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [preferences, setPreferences] = useState<any | null>(null);
+  const [llmResult, setLlmResult] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -373,81 +375,55 @@ const ChartPage = () => {
 
   useEffect(() => {
     if (userId) {
-      loadUserCards();
-      fetchRecommendations();
+      fetchData();
     }
   }, [userId]);
 
-  const loadUserCards = async () => {
+  const fetchData = async () => {
     try {
-      const saved = await AsyncStorage.getItem("userCards");
-      const parsed = saved ? JSON.parse(saved) : [];
-      const cardIds = parsed.map((c: any) => c.id); // assuming each has an `id`
-      setUserCards(cardIds);
+      const [cardsRes, txRes] = await Promise.all([
+        AsyncStorage.getItem("userCards"),
+        fetch(`https://api-zto2acvx6a-uc.a.run.app/transactions?user_id=${userId}`),
+      ]);
+      const userCards = cardsRes ? JSON.parse(cardsRes) : [];
+      const txJson = await txRes.json();
+
+      setUserCards(userCards);
+      setTransactions(txJson);
+
+      const cardDetails = await Promise.all(userCards.map(async (card: any) => {
+        const response = await fetch(`https://api-zto2acvx6a-uc.a.run.app/card_details?cardKey=${card.id}`);
+        return response.ok ? await response.json() : null;
+      }));
+
+      const db = getDatabase();
+      const prefRef = ref(db, `User_Transactions/${userId}/Preferences`);
+      const prefSnapshot = await get(prefRef);
+      const userPrefs = prefSnapshot.exists() ? prefSnapshot.val() : null;
+      setPreferences(userPrefs);
+
+      const prompt = `Here are the user's credit cards: ${JSON.stringify(cardDetails.filter(Boolean))}. Here are their recent transactions: ${JSON.stringify(txJson)}. Here are their preferences: ${JSON.stringify(userPrefs)}. Based on all this information, recommend the best card to use and explain why.`;
+
+      const result = await askOpenAI(prompt);
+      setLlmResult(result ?? "No recommendations available.");
     } catch (err) {
-      console.error("Error loading cards", err);
-    }
-  };
-
-  const fetchRecommendations = async () => {
-    try {
-      const recs: Record<string, string[]> = {};
-      const valueMap: Record<string, number> = {};
-
-      for (const cat of categories) {
-        const response = await fetch(
-          `https://api-zto2acvx6a-uc.a.run.app/optimal_card?user_id=${userId}&category=${cat}`
-        );
-        const data = await response.json();
-        recs[cat] = data.best_card || [];
-        valueMap[cat] = data.best_value || 0;
-      }
-
-      setRecommendations(recs);
-      setBestValueByCategory(valueMap);
-    } catch (err) {
-      console.error("Failed to fetch recommendations", err);
+      console.error("Error during data loading or OpenAI call", err);
+      Alert.alert("Error", "Failed to load data or get recommendation");
     } finally {
       setLoading(false);
     }
   };
 
-  const renderCard = (cardId: string, category: string) => {
-    const userHasCard = userCards.includes(cardId);
-    const img = cardImages[cardId] || null;
-    return (
-      <View key={cardId} style={styles.cardRow}>
-        <View style={styles.imageContainer}>
-          {img && <Image source={img} style={styles.cardImage} resizeMode="contain" />}
-        </View>
-        <View style={styles.cardDetails}>
-          <Text style={styles.cardName}>{cardId}</Text>
-          <Text style={styles.cashbackText}>
-            {userHasCard ? "✅ You have this card" : "❌ You don’t have this card"}
-          </Text>
-          {!userHasCard && (
-            <Text style={styles.recommendText}>
-              Consider getting this for {category} — it earns {bestValueByCategory[category]}x back.
-            </Text>
-          )}
-        </View>
-      </View>
-    );
-  };
-
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.header}>Best Cards</Text>
+        <Text style={styles.header}>Best Card Recommendations</Text>
         {loading ? (
           <ActivityIndicator size="large" color="#4CD964" />
         ) : (
-          categories.map((category) => (
-            <View key={category} style={{ marginBottom: 30 }}>
-              <Text style={styles.subHeader}>Top picks for {category}</Text>
-              {(recommendations[category] || []).map((cardId) => renderCard(cardId, category))}
-            </View>
-          ))
+          <View>
+            <Text style={styles.llmText}>{llmResult}</Text>
+          </View>
         )}
       </ScrollView>
     </SafeAreaView>
@@ -458,26 +434,7 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#f5f7fa" },
   scrollContent: { padding: 20, paddingTop: 50 },
   header: { fontSize: 34, fontWeight: "bold", marginBottom: 30, color: "#000" },
-  subHeader: { fontSize: 20, fontWeight: "600", marginBottom: 10 },
-  cardRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#fff",
-    padding: 15,
-    borderRadius: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
-    marginBottom: 15,
-  },
-  imageContainer: { width: 120, marginRight: 15 },
-  cardImage: { width: "100%", height: 80 },
-  cardDetails: { flex: 1 },
-  cardName: { fontSize: 18, fontWeight: "600", marginBottom: 4 },
-  cashbackText: { fontSize: 14, color: "#666" },
-  recommendText: { fontSize: 13, color: "#444", marginTop: 5 },
+  llmText: { fontSize: 16, color: "#333", lineHeight: 22 },
 });
 
 export default ChartPage;
