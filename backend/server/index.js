@@ -1,11 +1,15 @@
-express = require("express");
-db = require("./db/db.js");
-dotenv = require("dotenv");
-functions = require("firebase-functions");
-const cors = require("cors");
+express = require('express');
+db = require('./db/db.js');
+dotenv = require('dotenv');
+functions = require('firebase-functions')
+const cors = require("cors")
+
+
+
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(cors());
 
 dotenv.config();
 
@@ -19,60 +23,132 @@ app.listen(3000, () => {
   );
 });
 
-app.get("/optimal_card", async (req, res) => {
-  const { user_id, category } = req.query;
-
-  const db_user_ref = "Users/" + user_id;
-  const user_ref = db.ref(db_user_ref);
-
-  try {
-    const user_snapshot = await user_ref.once("value");
-    const user_cards = user_snapshot.val();
-
-    let best_card = [];
-    let best_value = 0;
-    for (let card of Object.keys(user_cards)) {
-      const db_rewards_ref = "Rewards/" + card;
-      const rewards_ref = db.ref(db_rewards_ref);
-      const rewards_snapshot = await rewards_ref.once("value");
-      if (rewards_snapshot.exists()) {
-        const rewards = rewards_snapshot.val();
-        const reward_per_category = rewards[category];
-        if (reward_per_category > best_value) {
-          best_card = [card];
-          best_value = reward_per_category;
-        } else if (reward_per_category == best_value) {
-          best_card.push(card);
-        }
-      }
-    }
-    return res.status(200).json({
-      best_card: best_card,
-      best_value: best_value,
-    });
-  } catch (error) {
-    console.error("Error:", error);
-    return res.status(500).json({ error: "Internal server error" });
+const creditCards = {
+  "chase-sapphirepreferred": {
+    name: "Chase Sapphire Preferred®",
+    imageUrl: "https://rewardsccapi.blob.core.windows.net/ccr1212/308260636.png"
+  },
+  "chase-sapphirereserve": {
+    name: "Chase Sapphire Reserve®",
+    imageUrl: "https://rewardsccapi.blob.core.windows.net/ccr1212/145450788.png"
+  },
+  "chase-freedomflex": {
+    name: "Chase Freedom Flex®",
+    imageUrl: "https://rewardsccapi.blob.core.windows.net/ccr1212/872692553.png"
+  },
+  "chase-freedomunlimited": {
+    name: "Chase Freedom Unlimited®",
+    imageUrl: "https://rewardsccapi.blob.core.windows.net/ccr1212/1435429562.png"
+  },
+  "amex-blue": {
+    name: "Blue from American Express®",
+    imageUrl: "https://rewardsccapi.blob.core.windows.net/ccr1212/1776154058.png"
+  },
+  "amex-centurion": {
+    name: "Centurion® Card from American Express",
+    imageUrl: "https://rewardsccapi.blob.core.windows.net/ccr1212/1544029857.png"
+  },
+  "amex-deltagold": {
+    name: "Delta SkyMiles® Gold American Express",
+    imageUrl: "https://rewardsccapi.blob.core.windows.net/ccr1212/1948519608.jpeg"
+  },
+  "amex-gold": {
+    name: "American Express® Gold",
+    imageUrl: "https://rewardsccapi.blob.core.windows.net/ccr1212/1448069716.png"
+  },
+  "amex-platinum": {
+    name: "The Platinum Card",
+    imageUrl: "https://rewardsccapi.blob.core.windows.net/ccr1212/1872018642.png"
+  },
+  "amex-green": {
+    name: "American Express® Green",
+    imageUrl: "https://rewardsccapi.blob.core.windows.net/ccr1212/941130048.png"
+  },
+  "amex-deltablue": {
+    name: "Delta SkyMiles® Blue American Express",
+    imageUrl: "https://rewardsccapi.blob.core.windows.net/ccr1212/175486701.png"
+  },
+  "amex-bluecasheveryday": {
+    name: "Blue Cash Everyday®",
+    imageUrl: "https://rewardsccapi.blob.core.windows.net/ccr1212/1960784516.png"
+  },
+  "amex-bluecashpreferred": {
+    name: "Blue Cash Preferred®",
+    imageUrl: "https://rewardsccapi.blob.core.windows.net/ccr1212/837101971.png"
+  },
+  "capitalone-venturex": {
+    name: "Venture X Rewards",
+    imageUrl: "https://rewardsccapi.blob.core.windows.net/ccr1212/1020742267.png"
+  },
+  "capitalone-venture": {
+    name: "Venture Rewards",
+    imageUrl: "https://rewardsccapi.blob.core.windows.net/ccr1212/1557827741.png"
+  },
+  "capitalone-ventureone": {
+    name: "VentureOne Rewards",
+    imageUrl: "https://rewardsccapi.blob.core.windows.net/ccr1212/609814409.png"
+  },
+  "capitalone-savor": {
+    name: "SavorOne Dining Rewards",
+    imageUrl: "https://rewardsccapi.blob.core.windows.net/ccr1212/1865776270.png"
+  },
+  "capitalone-savoronestudents": {
+    name: "Savor Rewards for Students",
+    imageUrl: "https://rewardsccapi.blob.core.windows.net/ccr1212/1143552390.png"
+  },
+  "capitalone-savorone": {
+    name: "Savor Rewards",
+    imageUrl: "https://rewardsccapi.blob.core.windows.net/ccr1212/397863832.png"
+  },
+  "capitalone-quicksilver": {
+    name: "Quicksilver Rewards",
+    imageUrl: "https://rewardsccapi.blob.core.windows.net/ccr1212/1522768206.png"
+  },
+  "boa-travelrewards": {
+    name: "Bank of America® Travel Rewards",
+    imageUrl: "https://rewardsccapi.blob.core.windows.net/ccr1212/127180189.png"
+  },
+  "boa-travelrewardssecured": {
+    name: "Bank of America® Travel Rewards Secured",
+    imageUrl: "https://rewardsccapi.blob.core.windows.net/ccr1212/518020984.png"
+  },
+  "boa-customizedcashrewardsstudents": {
+    name: "Bank of America® Customized Cash Rewards for Students",
+    imageUrl: "https://rewardsccapi.blob.core.windows.net/ccr1212/2090254884.png"
+  },
+  "citi-doublecash": {
+    name: "Citi Double Cash®",
+    imageUrl: "https://rewardsccapi.blob.core.windows.net/ccr1212/637923020.png"
+  },
+  "discover-cashback": {
+    name: "Discover it® Cash Back",
+    imageUrl: "https://rewardsccapi.blob.core.windows.net/ccr1212/594770995.png"
+  },
+  "discover-studentcashback": {
+    name: "Discover It® Student Cash Back",
+    imageUrl: "https://rewardsccapi.blob.core.windows.net/ccr1212/18324931.png"
   }
+};
+
+app.get('/cards', (req, res) => {
+  res.json(creditCards);
 });
+
 
 //example for  post
 app.post("/add_card", async (req, res) => {
   const user_id = req.body.user_id;
   const card_id = req.body.card_id;
-  console.log(user_id);
-  console.log(card_id);
   try {
-    const db_ref = "Users/" + user_id;
-    const users_ref = db.ref(db_ref);
-    const snapshot = await users_ref.once("value");
-    let cards = [];
+    const db_ref = 'User_Transactions/' + user_id + '/Cards';
+    const user_card_ref = db.ref(db_ref);
+    const snapshot = await user_card_ref.once('value');
     console.log(snapshot.val());
     if (snapshot.exists()) {
       cards = snapshot.val();
       if (!cards.hasOwnProperty(card_id)) {
-        cards[String(card_id)] = "";
-        await users_ref.set(cards);
+        cards[String(card_id)] = '';
+        await user_card_ref.set(cards);
         return res
           .status(200)
           .json({ message: `Key '${card_id}' added successfully!`, cards });
@@ -82,24 +158,13 @@ app.post("/add_card", async (req, res) => {
           cards,
         });
       }
+    } else {
+      cards[String(card_id)] = '';
+      await user_card_ref.set(cards);
+      return res
+          .status(200)
+          .json({ message: `Key '${card_id}' added successfully!`, cards });
     }
-  } catch (error) {
-    console.error("Error updating database:", error);
-    return res.status(500).json({ error: "Internal server error" });
-  }
-});
-
-//to be called when a user is registered
-app.post("/initialize_spending", async (req, res) => {
-  //parse request body
-  const user_id = req.body.user_id;
-
-  try {
-    const db_ref = "User_Transactions/" + user_id;
-    const user_transactions_ref = db.ref(db_ref);
-
-    await user_transactions_ref.set({ Dining: 0, Travel: 0, Grocery: 0 });
-    return res.status(200).json({ message: `User spending initialized in db` });
   } catch (error) {
     console.error("Error updating database:", error);
     return res.status(500).json({ error: "Internal server error" });
@@ -107,28 +172,66 @@ app.post("/initialize_spending", async (req, res) => {
 });
 
 app.post("/add_spending", async (req, res) => {
-  //parse request body
-  const user_id = req.body.user_id;
-  const spend_category = req.body.spend_category; //travel, dining, grocery
-  const amt = req.body.amt;
+  const { user_id, spend_category, amt } = req.body;
 
   try {
-    //reference a user's collection
-    const db_ref = "User_Transactions/" + user_id + "/" + spend_category;
-    const user_transactions_ref = db.ref(db_ref);
-    const snapshot = await user_transactions_ref.once("value");
+    // 1. Push a new transaction under "User_Transactions/<user_id>/Transactions"
+    const transactionsRef = db.ref(`User_Transactions/${user_id}/Transactions`);
+    const newTxnRef = transactionsRef.push();
+    await newTxnRef.set({
+      category: spend_category,
+      amount: amt,
+      timestamp: Date.now(),
+    });
 
-    let curr_amt = 0;
+    // 2. Update the aggregated total for that category
+    const categoryRef = db.ref(
+      `User_Transactions/${user_id}/Aggregated/${spend_category}`
+    );
+    const snapshot = await categoryRef.once("value");
+    let curr_amt = snapshot.val() || 0;
 
-    if (snapshot.exists()) {
-      //set cards to user's existing cards (this is a map)
-      curr_amt = snapshot.val();
-      curr_amt += amt;
-      await user_transactions_ref.set(curr_amt);
-      return res.status(200).json({ message: `Spending updated successfully` });
-    }
+    curr_amt += amt;
+    await categoryRef.set(curr_amt);
+
+    return res
+      .status(200)
+      .json({ message: "Spending (transaction) saved successfully" });
   } catch (error) {
-    console.error("Error updating database:", error);
+    console.error("Error saving transaction:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+app.get("/transactions", async (req, res) => {
+  const { user_id } = req.query;
+
+  try {
+    const transactionsRef = db.ref(`User_Transactions/${user_id}/Transactions`);
+    const snapshot = await transactionsRef.once("value");
+
+    if (!snapshot.exists()) {
+      // If no transactions yet, return an empty array
+      return res.status(200).json([]);
+    }
+
+    const transactionsData = snapshot.val();
+    // Convert the object of objects into an array
+    // Each transaction will have an auto-generated key like "-Mxyz..."
+    // We'll place that key inside each transaction object for reference
+    const transactionsArray = Object.keys(transactionsData).map((key) => {
+      return {
+        id: key,
+        ...transactionsData[key],
+      };
+    });
+
+    // Optionally sort by timestamp descending
+    transactionsArray.sort((a, b) => b.timestamp - a.timestamp);
+
+    return res.status(200).json(transactionsArray);
+  } catch (error) {
+    console.error("Error retrieving transactions:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -136,41 +239,34 @@ app.post("/add_spending", async (req, res) => {
 //add get endpoint to return the user's highest spending category
 //param : user_id
 app.get("/max_spend_category", async (req, res) => {
-  //parse query
   const { user_id } = req.query;
 
-  //reference user's database collection
-  const db_user_trans_ref = "User_Transactions/" + user_id;
-  const user_trans_ref = db.ref(db_user_trans_ref);
-
   try {
-    //reference a user's collection
-    const spend_categories = ["Dining", "Travel", "Grocery"];
-    let max_amt = 0;
-    let max_category = "";
-    for (let i = 0; i < spend_categories.length; i++) {
-      console.log(i);
-      const curr_category = spend_categories[i];
+    // We'll directly retrieve the entire "Aggregated" node
+    const aggregatesRef = db.ref(`User_Transactions/${user_id}/Aggregated`);
+    const snapshot = await aggregatesRef.once("value");
 
-      const db_ref = "User_Transactions/" + user_id + "/" + curr_category;
+    if (!snapshot.exists()) {
+      return res.status(200).json({ max_spending_category: null });
+    }
 
-      const user_trans_ref = db.ref(db_ref);
-      const snapshot = await user_trans_ref.once("value");
+    const aggregatedData = snapshot.val();
+    // aggregatedData is something like:
+    //   { Dining: 120, Travel: 70, Grocery: 180 }
 
-      if (snapshot.exists()) {
-        const curr_category_amt = snapshot.val();
-        console.log(curr_category, curr_category_amt);
-        if (curr_category_amt > max_amt) {
-          max_amt = curr_category_amt;
-          max_category = curr_category;
-        }
+    let maxCategory = "";
+    let maxAmount = 0;
+
+    for (const cat in aggregatedData) {
+      if (aggregatedData[cat] > maxAmount) {
+        maxAmount = aggregatedData[cat];
+        maxCategory = cat;
       }
     }
-    return res.status(200).json({
-      max_spending_category: max_category,
-    });
+
+    return res.status(200).json({ max_spending_category: maxCategory });
   } catch (error) {
-    console.error("Error getting maximum: ", error);
+    console.error("Error getting maximum spend category: ", error);
     return res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -340,15 +436,50 @@ app.get('/nearby_businesses', async (req, res) => {
   try {
     const response = await fetch(url, options);
     const result = await response.json();
-
-    const eligible_cards = [];
     console.log(result);
-
     return res.status(200).json(result);
   } catch (error) {
     console.error('Error Recommending Cards:', error);
   }
 });
+
+// app.get('/location_best_card', async (req, res) => {
+//   const { user_id, businessName, categoryName } = req.query;
+//   //get user's cards
+//   let cards = []
+//   try {
+//     const db_ref = 'User_Cards/' + user_id;
+//     const users_ref = db.ref(db_ref);
+//     const snapshot = await users_ref.once('value');
+//     if (snapshot.exists()) {
+//       cards = snapshot.val();
+//     }
+//   } catch (error) {
+//     console.error('Error accessing database:', error);
+//     return res.status(500).json({ error: 'Internal server error' });
+//   }
+//   console.log(' YO', cards)
+//   //for each card, /creditcard-spend-googlemaps/{cardKey}/{googleMapsBusinessName}/{googleMapsCategoryName}
+//   try  {
+//     Object.keys(cards).forEach((card) => {
+//       console.log(card);
+//       const url = `https://rewards-credit-card-api.p.rapidapi.com/creditcard-spend-googlemaps/${card}/${businessName}/${categoryName}`;
+//       const options = {
+//         method: 'GET',
+//         headers: {
+//           'x-rapidapi-key': process.env.RAPIDAPI_KEY,
+//           'x-rapidapi-host': 'rewards-credit-card-api.p.rapidapi.com',
+//         },
+//       };
+//       return res.status(200).json(cards);
+//     });
+//   } catch (error) {
+//     console.error('Error Querying Rewards API:', error);
+//     return res.status(500).json({ error: 'Internal server error' });
+//   }
+//   //return the 3 (or less if user does not have 3) cards with the highest earn rate
+  
+// })
 
 
 exports.api = functions.https.onRequest(app)
