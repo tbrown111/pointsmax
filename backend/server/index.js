@@ -3,6 +3,7 @@ db = require('./db/db.js');
 dotenv = require('dotenv');
 functions = require('firebase-functions')
 const cors = require("cors")
+const allCreditCardDetails = require('./card_details.js'); // update path accordingly
 
 
 
@@ -134,24 +135,6 @@ app.get('/cards', (req, res) => {
   res.json(creditCards);
 });
 
-const allCreditCardDetails = require('./card_details.js'); 
-app.get("/card_details", (req, res) => {
-  const { cardKey } = req.query;
-
-  if (!cardKey) {
-    return res.status(400).json({ error: "Missing cardKey parameter" });
-  }
-
-  const cardDetails = allCreditCardDetails.find(card => card.cardKey === cardKey);
-
-  if (!cardDetails) {
-    return res.status(404).json({ error: "Card not found" });
-  }
-
-  return res.status(200).json(cardDetails);
-});
-
-
 
 //example for  post
 app.post("/add_card", async (req, res) => {
@@ -161,9 +144,12 @@ app.post("/add_card", async (req, res) => {
     const db_ref = 'User_Transactions/' + user_id + '/Cards';
     const user_card_ref = db.ref(db_ref);
     const snapshot = await user_card_ref.once('value');
+    let cards = {}
     console.log(snapshot.val());
     if (snapshot.exists()) {
+      
       cards = snapshot.val();
+      console.log('YO' , cards)
       if (!cards.hasOwnProperty(card_id)) {
         cards[String(card_id)] = '';
         await user_card_ref.set(cards);
@@ -178,6 +164,7 @@ app.post("/add_card", async (req, res) => {
       }
     } else {
       cards[String(card_id)] = '';
+      console.log(cards)
       await user_card_ref.set(cards);
       return res
           .status(200)
@@ -461,43 +448,86 @@ app.get('/nearby_businesses', async (req, res) => {
   }
 });
 
+app.get('/user_cards', async (req, res) => {
+  const { user_id } = req.query;
+  //get user's cards
+  let cards = []
+  try {
+    const db_ref = 'User_Transactions/' + user_id + '/Cards';
+    const users_ref = db.ref(db_ref);
+    const snapshot = await users_ref.once('value');
+    if (snapshot.exists()) {
+      cards = snapshot.val();
+      cards = Object.keys(cards);
+    } 
+  } catch (error) {
+    console.error('Error accessing database:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+  console.log(cards)
+  return res.status(200).json(cards);
+})
+
 // app.get('/location_best_card', async (req, res) => {
 //   const { user_id, businessName, categoryName } = req.query;
+//   console.log(businessName);
+//   console.log(categoryName);
 //   //get user's cards
 //   let cards = []
 //   try {
-//     const db_ref = 'User_Cards/' + user_id;
+//     const db_ref = 'User_Transactions/' + user_id + '/Cards';
 //     const users_ref = db.ref(db_ref);
 //     const snapshot = await users_ref.once('value');
 //     if (snapshot.exists()) {
 //       cards = snapshot.val();
-//     }
+//       cards = Object.keys(cards);
+//     } 
 //   } catch (error) {
 //     console.error('Error accessing database:', error);
 //     return res.status(500).json({ error: 'Internal server error' });
 //   }
-//   console.log(' YO', cards)
 //   //for each card, /creditcard-spend-googlemaps/{cardKey}/{googleMapsBusinessName}/{googleMapsCategoryName}
-//   try  {
-//     Object.keys(cards).forEach((card) => {
-//       console.log(card);
-//       const url = `https://rewards-credit-card-api.p.rapidapi.com/creditcard-spend-googlemaps/${card}/${businessName}/${categoryName}`;
-//       const options = {
-//         method: 'GET',
-//         headers: {
-//           'x-rapidapi-key': process.env.RAPIDAPI_KEY,
-//           'x-rapidapi-host': 'rewards-credit-card-api.p.rapidapi.com',
-//         },
-//       };
-//       return res.status(200).json(cards);
-//     });
-//   } catch (error) {
-//     console.error('Error Querying Rewards API:', error);
-//     return res.status(500).json({ error: 'Internal server error' });
+//   let cardMap = {}
+//   for (const card of cards) {
+//     console.log(card);
+//     const url = `https://rewards-credit-card-api.p.rapidapi.com/creditcard-spend-googlemaps/${card}/${businessName}/${categoryName}`;
+//     const options = {
+//       method: 'GET',
+//       headers: {
+//         'x-rapidapi-key': process.env.RAPIDAPI_KEY,
+//         'x-rapidapi-host': 'rewards-credit-card-api.p.rapidapi.com',
+//       },
+//     };
+  
+//     try {
+//       const response = await fetch(url, options);
+//       const data = await response.json();
+//       console.log(data)
+//       cardMap[card] = data[0].earnRate;
+//     } catch (err) {
+//       console.error(`Error fetching data for ${card}:`, err);
+//     }
 //   }
+//   return res.status(200).json(cardMap)
 //   //return the 3 (or less if user does not have 3) cards with the highest earn rate
   
 // })
+
+app.get("/card_details", (req, res) => {
+  const { cardKey } = req.query;
+
+  if (!cardKey) {
+    return res.status(400).json({ error: "Missing cardKey parameter" });
+  }
+
+  const cardDetails = allCreditCardDetails.find(card => card.cardKey === cardKey);
+
+  if (!cardDetails) {
+    return res.status(404).json({ error: "Card not found" });
+  }
+
+  return res.status(200).json(cardDetails);
+});
 
 
 exports.api = functions.https.onRequest(app)

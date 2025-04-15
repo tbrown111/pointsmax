@@ -1,6 +1,6 @@
 var admin = require("firebase-admin");
 
-var serviceAccount = require("../auth/pointsmax-auth.json");
+var serviceAccount = require("../../auth/pointsmax-auth.json");
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
