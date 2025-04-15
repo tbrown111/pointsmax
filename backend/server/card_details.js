@@ -1,4 +1,4 @@
-[{
+module.exports = [{
     "cardKey": "chase-sapphirepreferred",
     "cardIssuer": "Chase",
     "cardName": "Chase Sapphire Preferred®",
@@ -178,9 +178,7 @@
         }
     ],
     "annualSpend": []
-}]
-
-[{
+},{
     "cardKey": "chase-sapphirereserve",
     "cardIssuer": "Chase",
     "cardName": "Chase Sapphire Reserve®",
@@ -438,9 +436,7 @@
         }
     ],
     "annualSpend": []
-}]
-
-[{
+},{
     "cardKey": "chase-freedomflex",
     "cardIssuer": "Chase",
     "cardName": "Chase Freedom Flex®",
@@ -612,9 +608,7 @@
         }
     ],
     "annualSpend": []
-}]
-
-[{
+},{
     "cardKey": "chase-freedomunlimited",
     "cardIssuer": "Chase",
     "cardName": "Chase Freedom Unlimited®",
@@ -748,9 +742,7 @@
         }
     ],
     "annualSpend": []
-}]
-
-[{
+},{
     "cardKey": "amex-blue",
     "cardIssuer": "American Express",
     "cardName": "Blue from American Express®",
@@ -800,9 +792,7 @@
     ],
     "spendBonusCategory": [],
     "annualSpend": []
-}]
-
-[{
+},{
     "cardKey": "amex-centurion",
     "cardIssuer": "American Express",
     "cardName": "Centurion® Card from American Express",
@@ -892,9 +882,7 @@
     ],
     "spendBonusCategory": [],
     "annualSpend": []
-}]
-
-[{
+},{
     "cardKey": "amex-deltagold",
     "cardIssuer": "American Express",
     "cardName": "Delta SkyMiles® Gold American Express",
@@ -1031,10 +1019,7 @@
     "annualSpend": [{
         "annualSpendDesc": "$100 Delta Flight Credit - Get inspired for your next trip - after you spend $10,000 in purchases on your Card in a calendar year, receive a $100 Delta Flight Credit to use toward future travel."
     }]
-}]
-
-
-[{
+},{
     "cardKey": "amex-gold",
     "cardIssuer": "American Express",
     "cardName": "American Express® Gold",
@@ -1172,9 +1157,7 @@
         }
     ],
     "annualSpend": []
-}]
-
-[{
+},{
     "cardKey": "amex-platinum",
     "cardIssuer": "American Express",
     "cardName": "The Platinum Card®",
@@ -1374,9 +1357,7 @@
         }
     ],
     "annualSpend": []
-}]
-
-[{
+},{
     "cardKey": "amex-green",
     "cardIssuer": "American Express",
     "cardName": "American Express® Green",
@@ -1525,9 +1506,7 @@
         }
     ],
     "annualSpend": []
-}]
-
-[{
+},{
     "cardKey": "amex-deltablue",
     "cardIssuer": "American Express",
     "cardName": "Delta SkyMiles® Blue American Express",
@@ -1623,9 +1602,7 @@
         }
     ],
     "annualSpend": []
-}]
-
-[{
+},{
     "cardKey": "amex-bluecasheveryday",
     "cardIssuer": "American Express",
     "cardName": "Blue Cash Everyday®",
@@ -1736,9 +1713,7 @@
         }
     ],
     "annualSpend": []
-}]
-
-[{
+},{
     "cardKey": "amex-bluecashpreferred",
     "cardIssuer": "American Express",
     "cardName": "Blue Cash Preferred®",
@@ -1890,9 +1865,7 @@
         }
     ],
     "annualSpend": []
-}]
-
-[{
+},{
     "cardKey": "capitalone-venturex",
     "cardIssuer": "Capital One",
     "cardName": "Venture X Rewards",
@@ -2041,9 +2014,7 @@
     "annualSpend": [{
         "annualSpendDesc": "Get 10,000 bonus miles (equal to $100 towards travel) every year, starting on your first anniversary"
     }]
-}]
-
-[{
+},{
     "cardKey": "capitalone-venture",
     "cardIssuer": "Capital One",
     "cardName": "Venture Rewards",
@@ -2171,9 +2142,7 @@
         }
     ],
     "annualSpend": []
-}]
-
-[{
+},{
     "cardKey": "capitalone-ventureone",
     "cardIssuer": "Capital One",
     "cardName": "VentureOne Rewards",
@@ -2277,9 +2246,7 @@
         }
     ],
     "annualSpend": []
-}]
-
-[{
+},{
     "cardKey": "capitalone-savor",
     "cardIssuer": "Capital One",
     "cardName": "SavorOne Dining Rewards",
@@ -2450,8 +2417,7 @@
         }
     ],
     "annualSpend": []
-}]
-[{
+},{
     "cardKey": "capitalone-savoronestudents",
     "cardIssuer": "Capital One",
     "cardName": "Savor Rewards for Students",
@@ -2622,9 +2588,7 @@
         }
     ],
     "annualSpend": []
-}]
-
-[{
+},{
     "cardKey": "capitalone-savorone",
     "cardIssuer": "Capital One",
     "cardName": "Savor Rewards",
@@ -2799,9 +2763,7 @@
         }
     ],
     "annualSpend": []
-}]
-
-[{
+},{
     "cardKey": "capitalone-quicksilver",
     "cardIssuer": "Capital One",
     "cardName": "Quicksilver Rewards",
@@ -2871,9 +2833,7 @@
     ],
     "spendBonusCategory": [],
     "annualSpend": []
-}]
-
-[{
+},{
     "cardKey": "boa-travelrewards",
     "cardIssuer": "Bank of America",
     "cardName": "Bank of America® Travel Rewards",
@@ -2923,9 +2883,7 @@
     ],
     "spendBonusCategory": [],
     "annualSpend": []
-}]
-
-[{
+},{
     "cardKey": "boa-travelrewardssecured",
     "cardIssuer": "Bank of America",
     "cardName": "Bank of America® Travel Rewards Secured",
@@ -2970,9 +2928,7 @@
     }],
     "spendBonusCategory": [],
     "annualSpend": []
-}]
-
-[{
+},{
     "cardKey": "boa-customizedcashrewardsstudents",
     "cardIssuer": "Bank of America",
     "cardName": "Bank of America® Customized Cash Rewards for Students",
@@ -3167,9 +3123,7 @@
         }
     ],
     "annualSpend": []
-}]
-
-[{
+},{
     "cardKey": "citi-doublecash",
     "cardIssuer": "Citi",
     "cardName": "Citi Double Cash®",
@@ -3219,9 +3173,7 @@
     ],
     "spendBonusCategory": [],
     "annualSpend": []
-}]
-
-[{
+},{
     "cardKey": "discover-cashback",
     "cardIssuer": "Discover",
     "cardName": "Discover it® Cash Back",
@@ -3305,9 +3257,7 @@
         }
     ],
     "annualSpend": []
-}]
-
-[{
+},{
     "cardKey": "discover-studentcashback",
     "cardIssuer": "Discover",
     "cardName": "Discover It® Student Cash Back",

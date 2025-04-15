@@ -144,9 +144,12 @@ app.post("/add_card", async (req, res) => {
     const db_ref = 'User_Transactions/' + user_id + '/Cards';
     const user_card_ref = db.ref(db_ref);
     const snapshot = await user_card_ref.once('value');
+    let cards = {}
     console.log(snapshot.val());
     if (snapshot.exists()) {
+      
       cards = snapshot.val();
+      console.log('YO' , cards)
       if (!cards.hasOwnProperty(card_id)) {
         cards[String(card_id)] = '';
         await user_card_ref.set(cards);
@@ -161,6 +164,7 @@ app.post("/add_card", async (req, res) => {
       }
     } else {
       cards[String(card_id)] = '';
+      console.log(cards)
       await user_card_ref.set(cards);
       return res
           .status(200)
