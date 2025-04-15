@@ -96,13 +96,38 @@ const AddCardScreen = () => {
     }
   };
 
-  // Add card to user's collection by updating local state (and ideally via a backend API)
+  // Add card to user's collection by updating local state and adding the card to the database via a backend API
   const addCard = async (card: CreditCard) => {
-    // In a complete implementation, you might call an API endpoint to update the user's cards.
-    const updatedCardIds = [...userCardIds, card.id];
-    setUserCardIds(updatedCardIds);
-    setModalVisible(false);
-    setSearchQuery("");
+    try {
+      const response = await fetch(
+        "https://api-zto2acvx6a-uc.a.run.app/add_card",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            user_id: userId, // use the current user's id from state
+            card_id: card.id, // use the id of the selected card
+          }),
+        }
+      );
+      if (!response.ok) {
+        console.error("Failed to add card to the database");
+        // Optionally handle error (e.g. show a user alert here)
+        return;
+      }
+      // Optionally, you can read the response:
+      // const result = await response.json();
+      // Update local state with the new card id only if the backend call was successful
+      setUserCardIds([...userCardIds, card.id]);
+    } catch (error) {
+      console.error("Error adding card:", error);
+    } finally {
+      // Close modal and clear search query regardless of success/failure
+      setModalVisible(false);
+      setSearchQuery("");
+    }
   };
 
   // Compute the list of cards to render by filtering available cards with user's card IDs.
