@@ -12,16 +12,18 @@ import {
   Alert,
   Dimensions,
   Modal,
+  useColorScheme,
 } from "react-native";
-import { Picker } from "@react-native-picker/picker";
 import { PieChart } from "react-native-chart-kit";
 import { Ionicons } from "@expo/vector-icons";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 
+const CATEGORIES = ["Dining", "Travel", "Grocery", "Entertainment", "Gas"];
+
 const TrackSpending = () => {
   const [userId, setUserId] = useState("");
   const [userEmail, setUserEmail] = useState("");
-  const [spendingCategory, setSpendingCategory] = useState("");
+  const [spendingCategory, setSpendingCategory] = useState<string>("");
   const [spendingAmount, setSpendingAmount] = useState("");
 
   // Store individual spending transactions from server
@@ -36,10 +38,14 @@ const TrackSpending = () => {
   // Data for the Pie Chart (fetched from Firebase)
   const [pieData, setPieData] = useState<any[]>([]);
 
+  // Detect system colour scheme (light / dark)
+  const scheme = useColorScheme();
+  const isDark = scheme === "dark";
+
   // When user logs in or out, update state
   useEffect(() => {
     const auth = getAuth();
-    onAuthStateChanged(auth, (user) => {
+    const unsub = onAuthStateChanged(auth, (user) => {
       if (user) {
         setUserId(user.uid);
         setUserEmail(user.email ?? "");
@@ -50,6 +56,8 @@ const TrackSpending = () => {
         setPieData([]);
       }
     });
+
+    return () => unsub();
   }, []);
 
   // Helper: Fetch the user's spending breakdown for the Pie Chart
@@ -60,31 +68,14 @@ const TrackSpending = () => {
         `https://api-zto2acvx6a-uc.a.run.app/spending_per_category?user_id=${userId}/Aggregated`
       );
       const result = await response.json();
-      console.log("Pie data from server:", result);
-      // result shape: { Dining: number, Travel: number, Grocery: number }
-      const chartData = [
-        {
-          name: "Dining",
-          population: result.Dining || 0,
-          color: "#4CD964",
-          legendFontColor: "#000",
-          legendFontSize: 14,
-        },
-        {
-          name: "Travel",
-          population: result.Travel || 0,
-          color: "#F39C12",
-          legendFontColor: "#000",
-          legendFontSize: 14,
-        },
-        {
-          name: "Grocery",
-          population: result.Grocery || 0,
-          color: "#3498DB",
-          legendFontColor: "#000",
-          legendFontSize: 14,
-        },
-      ];
+      const chartData = CATEGORIES.map((cat, idx) => ({
+        name: cat,
+        population: result[cat] || 0,
+        // simple distinct colour palette
+        color: ["#4CD964", "#F39C12", "#3498DB", "#9B59B6", "#E74C3C"][idx],
+        legendFontColor: isDark ? "#fff" : "#000",
+        legendFontSize: 14,
+      }));
       setPieData(chartData);
     } catch (error) {
       console.error("Error fetching pie data", error);
@@ -102,8 +93,6 @@ const TrackSpending = () => {
         throw new Error("Failed to fetch user transactions");
       }
       const data = await response.json();
-      // data should be an array of transaction objects: [{id, category, amount, timestamp}, ...]
-      console.log("Transactions from server:", data);
       setSpendings(data);
     } catch (error) {
       console.error("Error fetching transactions:", error);
@@ -121,7 +110,7 @@ const TrackSpending = () => {
   // Handle adding a new spending and sending a POST request to the server
   const handleAddSpending = async () => {
     if (!spendingCategory || !spendingAmount) {
-      Alert.alert("Error", "Please select a category and enter an amount.");
+      Alert.alert("Error", "Please choose a category and enter an amount.");
       return;
     }
 
@@ -143,12 +132,9 @@ const TrackSpending = () => {
 
       if (response.ok) {
         Alert.alert("Success", "Your spending has been recorded!");
-        // Clear inputs & close the modal
         setSpendingCategory("");
         setSpendingAmount("");
         setModalVisible(false);
-
-        // Refresh both the transactions list and the chart data
         fetchTransactions();
         fetchPieData();
       } else {
@@ -167,9 +153,9 @@ const TrackSpending = () => {
     }
   };
 
-  // Responsive width for PieChart
   const screenWidth = Dimensions.get("window").width;
 
+  /** ---------- RENDER ---------- */
   return (
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView
@@ -189,7 +175,9 @@ const TrackSpending = () => {
               style={styles.chartToggleButton}
               onPress={() => setShowChart(!showChart)}
             >
-              <Text style={styles.chartToggleButtonText}>View Chart</Text>
+              <Text style={styles.chartToggleButtonText}>
+                {showChart ? "Hide Chart" : "View Chart"}
+              </Text>
             </TouchableOpacity>
           </View>
 
@@ -253,22 +241,37 @@ const TrackSpending = () => {
               <View style={styles.modalContainer}>
                 <Text style={styles.modalTitle}>Add New Spending</Text>
 
-                <View style={styles.inputContainer}>
-                  <Text style={styles.label}>Category</Text>
-                  <Picker
-                    selectedValue={spendingCategory}
-                    onValueChange={(itemValue) =>
-                      setSpendingCategory(itemValue)
-                    }
-                    style={styles.picker}
-                  >
-                    <Picker.Item label="Select category..." value="" />
-                    <Picker.Item label="Dining" value="Dining" />
-                    <Picker.Item label="Travel" value="Travel" />
-                    <Picker.Item label="Grocery" value="Grocery" />
-                  </Picker>
+                {/* Category Selector */}
+                <View style={styles.categoryContainer}>
+                  {CATEGORIES.map((cat) => {
+                    const selected = cat === spendingCategory;
+                    return (
+                      <TouchableOpacity
+                        key={cat}
+                        style={[
+                          styles.categoryButton,
+                          selected && styles.categoryButtonActive,
+                        ]}
+                        onPress={() =>
+                          setSpendingCategory((prev) =>
+                            prev === cat ? "" : cat
+                          )
+                        }
+                      >
+                        <Text
+                          style={[
+                            styles.categoryButtonText,
+                            selected && styles.categoryButtonTextActive,
+                          ]}
+                        >
+                          {cat}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
 
+                {/* Amount */}
                 <View style={styles.inputContainer}>
                   <Text style={styles.label}>Amount</Text>
                   <TextInput
@@ -307,6 +310,7 @@ const TrackSpending = () => {
 
 export default TrackSpending;
 
+/* ---------- STYLES ---------- */
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
@@ -324,7 +328,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     textAlign: "left",
     marginBottom: 30,
-    color: "#000000",
+    color: "#000",
   },
   chartButtonContainer: {
     alignItems: "center",
@@ -367,7 +371,7 @@ const styles = StyleSheet.create({
   chartTitle: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#000000",
+    color: "#000",
     marginBottom: 12,
   },
   addButton: {
@@ -407,6 +411,33 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     textAlign: "center",
   },
+  categoryContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    marginBottom: 16,
+  },
+  categoryButton: {
+    flexBasis: "48%",
+    marginVertical: 4,
+    paddingVertical: 12,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#4CD964",
+    alignItems: "center",
+  },
+  categoryButtonActive: {
+    backgroundColor: "#4CD964",
+  },
+  categoryButtonText: {
+    fontSize: 16,
+    color: "#4CD964",
+    fontWeight: "500",
+  },
+  categoryButtonTextActive: {
+    color: "#fff",
+    fontWeight: "700",
+  },
   inputContainer: {
     marginBottom: 12,
   },
@@ -424,12 +455,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     borderWidth: 1,
     borderColor: "#ddd",
-  },
-  picker: {
-    backgroundColor: "#ffffff",
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 6,
   },
   modalButtons: {
     flexDirection: "row",
