@@ -95,21 +95,22 @@ export default function ProtectedTabsLayout() {
           ),
         }}
       />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: "Profile",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person-circle" size={size} color={color} />
-          ),
-        }}
-      />
+      
       <Tabs.Screen
         name="nearby"
         options={{
           title: "Nearby",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="location" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: "Profile",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="person-circle" size={size} color={color} />
           ),
         }}
       />

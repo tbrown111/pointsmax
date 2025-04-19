@@ -18,7 +18,7 @@ const ChartPage = () => {
   const [userCards, setUserCards] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [preferences, setPreferences] = useState<any | null>(null);
-  const [llmResult, setLlmResult] = useState<string | null>(null);
+  const [llmResult, setLlmResult] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [cardImages, setCardImages] = useState<any>({});
 
@@ -66,10 +66,40 @@ const ChartPage = () => {
       const userPrefs = prefSnapshot.exists() ? prefSnapshot.val() : null;
       setPreferences(userPrefs);
 
-      const prompt = `Here are the user's credit cards: ${JSON.stringify(cardDetails.filter(Boolean))}. Here are their recent transactions: ${JSON.stringify(txJson)}. Here are their preferences: ${JSON.stringify(userPrefs)}. Here is a list of all cards available in our database: ${JSON.stringify(allCards)}. Recommend one card from the user's current cards and one card they do not yet have, and explain why for both. For the recommendations, include the card key in the format \"card_key:<key>\" so we can identify the images. Respond in a user-friendly format, without any hashtags or markdown, and separate the two recommendations clearly.`;
+      // const prompt = `Here are the user's credit cards: ${JSON.stringify(cardDetails.filter(Boolean))}. Here are their recent transactions: ${JSON.stringify(txJson)}. Here are their preferences: ${JSON.stringify(userPrefs)}. Here is a list of all cards available in our database: ${JSON.stringify(allCards)}. Recommend one card that they do not yet have. Keep in mind user preferences and how they relate to the card details. Keep in mind that students may not want to pay a lot of annual fees. If they are a student, recommend cards that have low or 0 annual fees. Place emphasis on this. For the recommendation, include the card key in the format \"card_key:<key>\" at the beginning of the response. Additionally, include the name of the card, the annual fee, and a paragraph of reasoning. Respond in this order and do not include anything else. Respond in a user-friendly format, without any hashtags or markdown.`;
+      const prompt = `
+        You are helping choose a new credit card for a user. 
+
+        Here are the user's credit cards: ${JSON.stringify(cardDetails.filter(Boolean))}.
+        Here are their recent transactions: ${JSON.stringify(txJson)}.
+        Here are their preferences: ${JSON.stringify(userPrefs)}.
+        Here is a list of all cards available in our database: ${JSON.stringify(allCards)}.
+
+        Recommend **one** card that they do **not** already have. Prioritize cards that match their preferences. 
+        If they are a student, **strongly favor** cards with $0 or low annual fees.
+
+        Respond ONLY with a JSON object formatted like this:
+        {
+          "card_key": "<card_key>",
+          "name": "<Card Name>",
+          "annual_fee": "<Annual Fee>",
+          "reason": "<Short user-friendly paragraph explaining why this card is a good match>"
+        }
+
+        Do NOT include any markdown or extra commentary. Just return the JSON object.
+        `;
 
       const result = await askOpenAI(prompt);
-      setLlmResult(result ?? "No recommendations available.");
+
+      try {
+        const parsed = result ? JSON.parse(result) : null;
+        setLlmResult(parsed);
+      } catch (e) {
+        console.error("Failed to parse OpenAI response as JSON:", e);
+        setLlmResult(null);
+      }
+
+      // setLlmResult(result ?? "No recommendations available.");
     } catch (err) {
       console.error("Error during data loading or OpenAI call", err);
       Alert.alert("Error", "Failed to load data or get recommendation");
@@ -78,10 +108,9 @@ const ChartPage = () => {
     }
   };
 
-  const extractCardKeys = (text: string): string[] => {
-    const matches = text.match(/card_key:([a-zA-Z0-9\-]+)/g);
-    if (!matches) return [];
-    return matches.map((match) => match.split(":")[1]);
+  const extractCardKeys = (data: any): string[] => {
+    if (!data || !data.card_key) return [];
+    return [data.card_key];
   };
 
   const renderRecommendedImages = () => {
@@ -103,6 +132,18 @@ const ChartPage = () => {
     );
   };
 
+  const renderLlmCardDetails = () => {
+    if (!llmResult) return null;
+  
+    return (
+      <View style={styles.recommendationBox}>
+        <Text style={styles.cardName}>{llmResult.name}</Text>
+        <Text style={styles.annualFee}>Annual Fee: {llmResult.annual_fee}</Text>
+        <Text style={styles.reason}>{llmResult.reason}</Text>
+      </View>
+    );
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -112,7 +153,7 @@ const ChartPage = () => {
         ) : (
           <View>
             {renderRecommendedImages()}
-            <Text style={styles.llmText}>{llmResult}</Text>
+            {renderLlmCardDetails()}
           </View>
         )}
       </ScrollView>
@@ -129,6 +170,34 @@ const styles = StyleSheet.create({
   imageRow: { flexDirection: "row", justifyContent: "space-around", flexWrap: "wrap" },
   cardImage: { width: 160, height: 100, borderRadius: 10 },
   cardLabel: { marginTop: 8, fontSize: 14, fontWeight: "600", textAlign: "center" },
+  recommendationBox: {
+    backgroundColor: "#fff",
+    padding: 16,
+    borderRadius: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    marginTop: 20,
+  },
+  cardName: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 8,
+    color: "#000",
+  },
+  annualFee: {
+    fontSize: 16,
+    marginBottom: 8,
+    color: "#444",
+  },
+  reason: {
+    fontSize: 14,
+    color: "#555",
+    lineHeight: 20,
+  },
+  
 });
 
 export default ChartPage;

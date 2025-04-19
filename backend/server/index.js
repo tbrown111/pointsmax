@@ -468,50 +468,83 @@ app.get('/user_cards', async (req, res) => {
   return res.status(200).json(cards);
 })
 
-// app.get('/location_best_card', async (req, res) => {
-//   const { user_id, businessName, categoryName } = req.query;
-//   console.log(businessName);
-//   console.log(categoryName);
-//   //get user's cards
-//   let cards = []
-//   try {
-//     const db_ref = 'User_Transactions/' + user_id + '/Cards';
-//     const users_ref = db.ref(db_ref);
-//     const snapshot = await users_ref.once('value');
-//     if (snapshot.exists()) {
-//       cards = snapshot.val();
-//       cards = Object.keys(cards);
-//     } 
-//   } catch (error) {
-//     console.error('Error accessing database:', error);
-//     return res.status(500).json({ error: 'Internal server error' });
-//   }
-//   //for each card, /creditcard-spend-googlemaps/{cardKey}/{googleMapsBusinessName}/{googleMapsCategoryName}
-//   let cardMap = {}
-//   for (const card of cards) {
-//     console.log(card);
-//     const url = `https://rewards-credit-card-api.p.rapidapi.com/creditcard-spend-googlemaps/${card}/${businessName}/${categoryName}`;
-//     const options = {
-//       method: 'GET',
-//       headers: {
-//         'x-rapidapi-key': process.env.RAPIDAPI_KEY,
-//         'x-rapidapi-host': 'rewards-credit-card-api.p.rapidapi.com',
-//       },
-//     };
+app.get('/location_best_card', async (req, res) => {
+  const { user_id, businessName, categoryName } = req.query;
+  console.log(businessName);
+  console.log(categoryName);
+  //get user's cards
+  let cards = []
+  try {
+    const db_ref = 'User_Transactions/' + user_id + '/Cards';
+    const users_ref = db.ref(db_ref);
+    const snapshot = await users_ref.once('value');
+    if (snapshot.exists()) {
+      cards = snapshot.val();
+      cards = Object.keys(cards);
+    } 
+  } catch (error) {
+    console.error('Error accessing database:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+  //for each card, /creditcard-spend-googlemaps/{cardKey}/{googleMapsBusinessName}/{googleMapsCategoryName}
+  let cardMap = {}
+  const batchSize = 3;
+
+  for (let i = 0; i < cards.length; i += batchSize) {
+    const batch = cards.slice(i, i + batchSize);
+
+    // Process all requests in the batch concurrently
+    await Promise.all(
+      batch.map(async (card) => {
+        const url = `https://rewards-credit-card-api.p.rapidapi.com/creditcard-spend-googlemaps/${card}/${businessName}/${categoryName}`;
+        const options = {
+          method: 'GET',
+          headers: {
+            'x-rapidapi-key': process.env.RAPIDAPI_KEY,
+            'x-rapidapi-host': 'rewards-credit-card-api.p.rapidapi.com',
+          },
+        };
+
+        try {
+          const response = await fetch(url, options);
+          const data = await response.json();
+          console.log(data);
+          cardMap[card] = data[0].earnRate;
+        } catch (err) {
+          console.error(`Error fetching data for ${card}:`, err);
+        }
+      })
+    );
+
+    // Wait 1 second before sending the next batch
+    if (i + batchSize < cards.length) {
+      await delay(1200);
+    }
+  }
+  let highestRate = -Infinity;
+  let bestCards = [];
+
+  // Find the highest earn rate and collect all cards with that rate
+  for (const [card, rate] of Object.entries(cardMap)) {
+    if (rate > highestRate) {
+      highestRate = rate;
+      bestCards = [card];
+    } else if (rate === highestRate) {
+      bestCards.push(card);
+    }
+  } 
+
+// Respond with both the best cards and the earn rate
+  return res.status(200).json({
+    bestCards,
+    earnRate: highestRate
+  });
   
-//     try {
-//       const response = await fetch(url, options);
-//       const data = await response.json();
-//       console.log(data)
-//       cardMap[card] = data[0].earnRate;
-//     } catch (err) {
-//       console.error(`Error fetching data for ${card}:`, err);
-//     }
-//   }
-//   return res.status(200).json(cardMap)
-//   //return the 3 (or less if user does not have 3) cards with the highest earn rate
-  
-// })
+})
+
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 app.get("/card_details", (req, res) => {
   const { cardKey } = req.query;
