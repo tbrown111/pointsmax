@@ -12,40 +12,52 @@ import {
   Alert,
   Dimensions,
   Modal,
-  useColorScheme,
 } from "react-native";
+import { Picker } from "@react-native-picker/picker";
 import { PieChart } from "react-native-chart-kit";
 import { Ionicons } from "@expo/vector-icons";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 
-const CATEGORIES = ["Dining", "Travel", "Grocery", "Entertainment", "Gas"];
+/**
+ * TrackSpending.tsx
+ * -------------------------------------------------------------
+ * A simple spending tracker that lets authenticated users record
+ * transactions, see a list of them, and view a breakdown pie chart.
+ *
+ * ⚠️  Android Picker crash fix:
+ *    - `selectedValue` **must** always be a string (never null).
+ *    - We use the empty string "" as a sentinel for "not selected".
+ * -------------------------------------------------------------
+ */
 
-const TrackSpending = () => {
+/* ──────────── constants ──────────── */
+const CATEGORIES = [
+  "Dining",
+  "Travel",
+  "Grocery",
+  "Entertainment",
+  "Gas",
+] as const;
+
+type Category = (typeof CATEGORIES)[number];
+
+/* ──────────── component ──────────── */
+const TrackSpending: React.FC = () => {
+  /* ---------- state ---------- */
   const [userId, setUserId] = useState("");
   const [userEmail, setUserEmail] = useState("");
-  const [spendingCategory, setSpendingCategory] = useState<string>("");
-  const [spendingAmount, setSpendingAmount] = useState("");
+  const [spendingCategory, setSpendingCategory] = useState<string>(""); // sentinel ""
+  const [spendingAmount, setSpendingAmount] = useState<string>("");
 
-  // Store individual spending transactions from server
   const [spendings, setSpendings] = useState<any[]>([]);
-
-  // Control the visibility of the Modal
   const [modalVisible, setModalVisible] = useState(false);
-
-  // Toggle whether to show the chart
   const [showChart, setShowChart] = useState(false);
-
-  // Data for the Pie Chart (fetched from Firebase)
   const [pieData, setPieData] = useState<any[]>([]);
 
-  // Detect system colour scheme (light / dark)
-  const scheme = useColorScheme();
-  const isDark = scheme === "dark";
-
-  // When user logs in or out, update state
+  /* ---------- auth listener ---------- */
   useEffect(() => {
     const auth = getAuth();
-    const unsub = onAuthStateChanged(auth, (user) => {
+    return onAuthStateChanged(auth, (user) => {
       if (user) {
         setUserId(user.uid);
         setUserEmail(user.email ?? "");
@@ -56,11 +68,9 @@ const TrackSpending = () => {
         setPieData([]);
       }
     });
-
-    return () => unsub();
   }, []);
 
-  // Helper: Fetch the user's spending breakdown for the Pie Chart
+  /* ---------- fetch helpers ---------- */
   const fetchPieData = async () => {
     if (!userId) return;
     try {
@@ -68,30 +78,56 @@ const TrackSpending = () => {
         `https://api-zto2acvx6a-uc.a.run.app/spending_per_category?user_id=${userId}/Aggregated`
       );
       const result = await response.json();
-      const chartData = CATEGORIES.map((cat, idx) => ({
-        name: cat,
-        population: result[cat] || 0,
-        // simple distinct colour palette
-        color: ["#4CD964", "#F39C12", "#3498DB", "#9B59B6", "#E74C3C"][idx],
-        legendFontColor: isDark ? "#fff" : "#000",
-        legendFontSize: 14,
-      }));
+      const chartData = [
+        {
+          name: "Dining",
+          population: result.Dining || 0,
+          color: "#4CD964",
+          legendFontColor: "#000",
+          legendFontSize: 14,
+        },
+        {
+          name: "Travel",
+          population: result.Travel || 0,
+          color: "#F39C12",
+          legendFontColor: "#000",
+          legendFontSize: 14,
+        },
+        {
+          name: "Grocery",
+          population: result.Grocery || 0,
+          color: "#3498DB",
+          legendFontColor: "#000",
+          legendFontSize: 14,
+        },
+        {
+          name: "Entertainment",
+          population: result.Entertainment || 0,
+          color: "#9B59B6",
+          legendFontColor: "#000",
+          legendFontSize: 14,
+        },
+        {
+          name: "Gas",
+          population: result.Gas || 0,
+          color: "#E74C3C",
+          legendFontColor: "#000",
+          legendFontSize: 14,
+        },
+      ];
       setPieData(chartData);
     } catch (error) {
       console.error("Error fetching pie data", error);
     }
   };
 
-  // Helper: Fetch transactions for the current user
   const fetchTransactions = async () => {
     if (!userId) return;
     try {
       const response = await fetch(
         `https://api-zto2acvx6a-uc.a.run.app/transactions?user_id=${userId}`
       );
-      if (!response.ok) {
-        throw new Error("Failed to fetch user transactions");
-      }
+      if (!response.ok) throw new Error("Failed to fetch user transactions");
       const data = await response.json();
       setSpendings(data);
     } catch (error) {
@@ -99,7 +135,7 @@ const TrackSpending = () => {
     }
   };
 
-  // Fetch transactions & chart data whenever userId changes (i.e., once user is known)
+  /* ---------- refresh when UID changes ---------- */
   useEffect(() => {
     if (userId) {
       fetchTransactions();
@@ -107,21 +143,18 @@ const TrackSpending = () => {
     }
   }, [userId]);
 
-  // Handle adding a new spending and sending a POST request to the server
+  /* ---------- add spending ---------- */
   const handleAddSpending = async () => {
-    if (!spendingCategory || !spendingAmount) {
-      Alert.alert("Error", "Please choose a category and enter an amount.");
+    if (!spendingCategory || spendingCategory === "" || !spendingAmount) {
+      Alert.alert("Error", "Please select a category and enter an amount.");
       return;
     }
-
     try {
       const response = await fetch(
         "https://api-zto2acvx6a-uc.a.run.app/add_spending",
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             user_id: userId,
             spend_category: spendingCategory,
@@ -129,33 +162,26 @@ const TrackSpending = () => {
           }),
         }
       );
-
-      if (response.ok) {
-        Alert.alert("Success", "Your spending has been recorded!");
-        setSpendingCategory("");
-        setSpendingAmount("");
-        setModalVisible(false);
-        fetchTransactions();
-        fetchPieData();
-      } else {
+      if (!response.ok) {
         const data = await response.json();
-        Alert.alert(
-          "Error",
-          data.message || "There was an error adding your spending."
-        );
+        throw new Error(data.message ?? "API error");
       }
-    } catch (error) {
-      Alert.alert(
-        "Error",
-        "There was an error adding your spending. Please try again."
-      );
-      console.error(error);
+      Alert.alert("Success", "Your spending has been recorded!");
+      setSpendingCategory("");
+      setSpendingAmount("");
+      setModalVisible(false);
+      fetchTransactions();
+      fetchPieData();
+    } catch (err: any) {
+      console.error(err);
+      Alert.alert("Error", err.message ?? "Unknown error, please try again.");
     }
   };
 
+  /* ---------- render ---------- */
   const screenWidth = Dimensions.get("window").width;
+  const pickerTextColor = Platform.OS === "android" ? "#000" : "#4CD964";
 
-  /** ---------- RENDER ---------- */
   return (
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView
@@ -169,19 +195,17 @@ const TrackSpending = () => {
         >
           <Text style={styles.header}>Spending Tracker</Text>
 
-          {/* Top "Chart" Button */}
+          {/* Chart toggle */}
           <View style={styles.chartButtonContainer}>
             <TouchableOpacity
               style={styles.chartToggleButton}
-              onPress={() => setShowChart(!showChart)}
+              onPress={() => setShowChart((prev) => !prev)}
             >
-              <Text style={styles.chartToggleButtonText}>
-                {showChart ? "Hide Chart" : "View Chart"}
-              </Text>
+              <Text style={styles.chartToggleButtonText}>View Chart</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Conditionally Render the Pie Chart */}
+          {/* Pie chart */}
           {showChart && pieData.length > 0 && (
             <View style={styles.chartContainer}>
               <Text style={styles.chartTitle}>Spending Breakdown</Text>
@@ -190,19 +214,19 @@ const TrackSpending = () => {
                 width={screenWidth * 0.9}
                 height={220}
                 chartConfig={{
-                  backgroundGradientFrom: "#ffffff",
-                  backgroundGradientTo: "#ffffff",
-                  color: () => `#777`,
+                  backgroundGradientFrom: "#fff",
+                  backgroundGradientTo: "#fff",
+                  color: () => "#777",
                 }}
-                accessor={"population"}
-                backgroundColor={"transparent"}
-                paddingLeft={"10"}
+                accessor="population"
+                backgroundColor="transparent"
+                paddingLeft="10"
                 absolute
               />
             </View>
           )}
 
-          {/* Transaction List */}
+          {/* Transaction list */}
           <View style={styles.listContainer}>
             <Text style={styles.listHeader}>Transaction List</Text>
             {spendings.length === 0 ? (
@@ -221,15 +245,15 @@ const TrackSpending = () => {
           </View>
         </ScrollView>
 
-        {/* Add Spending Button */}
+        {/* Floating add button */}
         <TouchableOpacity
           style={styles.addButton}
           onPress={() => setModalVisible(true)}
         >
-          <Ionicons name="add" size={30} color="white" />
+          <Ionicons name="add" size={30} color="#fff" />
         </TouchableOpacity>
 
-        {/* Modal for adding new spending */}
+        {/* Add‑spending modal */}
         <Modal
           visible={modalVisible}
           transparent
@@ -241,50 +265,42 @@ const TrackSpending = () => {
               <View style={styles.modalContainer}>
                 <Text style={styles.modalTitle}>Add New Spending</Text>
 
-                {/* Category Selector */}
-                <View style={styles.categoryContainer}>
-                  {CATEGORIES.map((cat) => {
-                    const selected = cat === spendingCategory;
-                    return (
-                      <TouchableOpacity
-                        key={cat}
-                        style={[
-                          styles.categoryButton,
-                          selected && styles.categoryButtonActive,
-                        ]}
-                        onPress={() =>
-                          setSpendingCategory((prev) =>
-                            prev === cat ? "" : cat
-                          )
-                        }
-                      >
-                        <Text
-                          style={[
-                            styles.categoryButtonText,
-                            selected && styles.categoryButtonTextActive,
-                          ]}
-                        >
-                          {cat}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
+                {/* Category picker */}
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>Category</Text>
+                  <Picker
+                    selectedValue={spendingCategory}
+                    onValueChange={(val) => setSpendingCategory(val)}
+                    style={[styles.picker, { color: pickerTextColor }]}
+                    itemStyle={styles.pickerItem}
+                    dropdownIconColor="#4CD964"
+                    mode="dropdown"
+                  >
+                    <Picker.Item
+                      label="Select category..."
+                      value=""
+                      color="#999"
+                    />
+                    {CATEGORIES.map((cat) => (
+                      <Picker.Item key={cat} label={cat} value={cat} />
+                    ))}
+                  </Picker>
                 </View>
 
-                {/* Amount */}
+                {/* Amount input */}
                 <View style={styles.inputContainer}>
                   <Text style={styles.label}>Amount</Text>
                   <TextInput
                     style={styles.textInput}
                     placeholder="e.g. 75.00"
                     placeholderTextColor="#777"
-                    keyboardType="numeric"
+                    keyboardType="decimal-pad"
                     value={spendingAmount}
                     onChangeText={setSpendingAmount}
                   />
                 </View>
 
-                {/* Action Buttons */}
+                {/* Action buttons */}
                 <View style={styles.modalButtons}>
                   <TouchableOpacity
                     style={styles.submitButton}
@@ -310,19 +326,11 @@ const TrackSpending = () => {
 
 export default TrackSpending;
 
-/* ---------- STYLES ---------- */
+/* ──────────── styles ──────────── */
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#f5f7fa",
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 20,
-    paddingTop: 50,
-  },
+  safeArea: { flex: 1, backgroundColor: "#f5f7fa" },
+  scrollView: { flex: 1 },
+  scrollContent: { padding: 20, paddingTop: 50 },
   header: {
     fontSize: 34,
     fontWeight: "bold",
@@ -330,15 +338,11 @@ const styles = StyleSheet.create({
     marginBottom: 30,
     color: "#000",
   },
-  chartButtonContainer: {
-    alignItems: "center",
-    marginBottom: 10,
-  },
+  chartButtonContainer: { alignItems: "center", marginBottom: 10 },
   chartToggleButton: {
     backgroundColor: "#4CD964",
     width: "100%",
     paddingVertical: 12,
-    paddingHorizontal: 20,
     borderRadius: 8,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -352,9 +356,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     textAlign: "center",
   },
-  avoidingView: {
-    flex: 1,
-  },
+  avoidingView: { flex: 1 },
   chartContainer: {
     alignItems: "center",
     marginBottom: 24,
@@ -390,20 +392,14 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
     elevation: 5,
   },
-  keyboardModal: {
-    paddingTop: 15,
-  },
+  keyboardModal: { paddingTop: 15 },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "center",
     padding: 16,
   },
-  modalContainer: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 16,
-  },
+  modalContainer: { backgroundColor: "#fff", borderRadius: 12, padding: 16 },
   modalTitle: {
     fontSize: 22,
     fontWeight: "bold",
@@ -411,44 +407,10 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     textAlign: "center",
   },
-  categoryContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-    marginBottom: 16,
-  },
-  categoryButton: {
-    flexBasis: "48%",
-    marginVertical: 4,
-    paddingVertical: 12,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: "#4CD964",
-    alignItems: "center",
-  },
-  categoryButtonActive: {
-    backgroundColor: "#4CD964",
-  },
-  categoryButtonText: {
-    fontSize: 16,
-    color: "#4CD964",
-    fontWeight: "500",
-  },
-  categoryButtonTextActive: {
-    color: "#fff",
-    fontWeight: "700",
-  },
-  inputContainer: {
-    marginBottom: 12,
-  },
-  label: {
-    fontSize: 16,
-    marginBottom: 6,
-    fontWeight: "600",
-    color: "#4CD964",
-  },
+  inputContainer: { marginBottom: 12 },
+  label: { fontSize: 16, marginBottom: 6, fontWeight: "600", color: "#4CD964" },
   textInput: {
-    backgroundColor: "#ffffff",
+    backgroundColor: "#fff",
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 6,
@@ -456,10 +418,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#ddd",
   },
-  modalButtons: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+  picker: {
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 6,
   },
+  pickerItem: {
+    color: "#000",
+    // width: 100, // fixes invisible items on some iOS builds
+  },
+  modalButtons: { flexDirection: "row", justifyContent: "space-between" },
   submitButton: {
     flex: 1,
     marginHorizontal: 4,
@@ -468,24 +437,10 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     alignItems: "center",
   },
-  submitText: {
-    color: "#ffffff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  listContainer: {
-    padding: 10,
-    marginTop: 20,
-  },
-  listHeader: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 10,
-  },
-  noTransactions: {
-    fontSize: 16,
-    color: "#777",
-  },
+  submitText: { color: "#fff", fontSize: 16, fontWeight: "600" },
+  listContainer: { padding: 10, marginTop: 20 },
+  listHeader: { fontSize: 24, fontWeight: "bold", marginBottom: 10 },
+  noTransactions: { fontSize: 16, color: "#777" },
   spendingItem: {
     backgroundColor: "#fff",
     padding: 10,
@@ -497,16 +452,7 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 2,
   },
-  spendingCategory: {
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  spendingAmount: {
-    fontSize: 16,
-    color: "#4CD964",
-  },
-  spendingDate: {
-    fontSize: 12,
-    color: "#aaa",
-  },
+  spendingCategory: { fontSize: 16, fontWeight: "bold" },
+  spendingAmount: { fontSize: 16, color: "#4CD964" },
+  spendingDate: { fontSize: 12, color: "#aaa" },
 });
