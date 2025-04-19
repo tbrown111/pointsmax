@@ -17,6 +17,8 @@ import {
   Image,
   ScrollView,
 } from "react-native";
+import * as Location from 'expo-location';
+
 
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 
@@ -77,13 +79,18 @@ export default function NearbyLocationsScreen() {
   useEffect(() => {
     const fetchNearbyBusinesses = async () => {
       try {
-        const latitude = 33.776587;
-        const longitude = -84.389539;
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          console.error('Permission to access location was denied');
+          return;
+        }
+  
+        const location = await Location.getCurrentPositionAsync({});
+        const { latitude, longitude } = location.coords;
+  
         const url = `https://api-zto2acvx6a-uc.a.run.app/nearby_businesses?latitude=${latitude}&longitude=${longitude}`;
-
         const response = await fetch(url);
-        const data: NearbyBusinessesResponse = await response.json();
-
+        const data = await response.json();
         setBusinesses(data.places || []);
       } catch (err) {
         console.error("Error fetching nearby businesses:", err);
@@ -91,9 +98,10 @@ export default function NearbyLocationsScreen() {
         setLoading(false);
       }
     };
-
+  
     fetchNearbyBusinesses();
   }, []);
+  
 
   /* ──────────── handle press ──────────── */
   const handlePress = useCallback(
