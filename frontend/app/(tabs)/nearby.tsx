@@ -1,11 +1,3 @@
-/**
- * NearbyLocationsScreen.tsx
- * -------------------------------------------------------------
- * Shows nearby businesses, then (on tap) fetches + displays the
- * best credit‑card recommendations with images & earn rate.
- * Long business names now wrap cleanly instead of overflowing.
- * -------------------------------------------------------------
- */
 import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
@@ -16,20 +8,21 @@ import {
   TouchableOpacity,
   Image,
   ScrollView,
+  TextInput,
 } from "react-native";
-import * as Location from 'expo-location';
-
-
+import * as Location from "expo-location";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
+
+import { askOpenAI } from "./openaiHelper";
 
 /* ──────────── type defs ──────────── */
 interface NearbyBusiness {
   displayName: { text: string; languageCode: string };
   primaryTypeDisplayName: { text: string; languageCode: string };
-}
-
-interface NearbyBusinessesResponse {
-  places: NearbyBusiness[];
 }
 
 interface CardsResponse {
@@ -41,9 +34,12 @@ interface BestCardResponse {
   earnRate: number;
 }
 
-export default function NearbyLocationsScreen() {
+/* ──────────── component ──────────── */
+export default function RecommendationsScreen() {
+  const insets = useSafeAreaInsets(); // <‑‑ safe‑area padding
+
   /* ──────────── state ──────────── */
-  const [userId, setUserId] = useState("FMOdmVLVTwfwNY0bSq0SBxr1aZl1"); // fallback UID
+  const [userId, setUserId] = useState("FMOdmVLVTwfwNY0bSq0SBxr1aZl1");
   const [businesses, setBusinesses] = useState<NearbyBusiness[]>([]);
   const [cardsInfo, setCardsInfo] = useState<CardsResponse>({});
   const [bestCardData, setBestCardData] = useState<
@@ -52,7 +48,13 @@ export default function NearbyLocationsScreen() {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
-  /* ──────────── Firebase auth (optional) ──────────── */
+  /* user‑card quick‑recommendation */
+  const [userCardIds, setUserCardIds] = useState<string[]>([]);
+  const [purchaseDesc, setPurchaseDesc] = useState("");
+  const [recommendedCard, setRecommendedCard] = useState<string | null>(null);
+  const [recLoading, setRecLoading] = useState(false);
+
+  /* ──────────── Firebase auth ──────────── */
   useEffect(() => {
     const auth = getAuth();
     const unsub = onAuthStateChanged(auth, (user) => {
@@ -61,58 +63,85 @@ export default function NearbyLocationsScreen() {
     return unsub;
   }, []);
 
+  /* ──────────── fetch user cards ──────────── */
+  useEffect(() => {
+    async function fetchUserCards(uid: string) {
+      try {
+        const res = await fetch(
+          `https://api-zto2acvx6a-uc.a.run.app/user_cards?user_id=${uid}`
+        );
+        const ids: string[] = await res.json();
+        setUserCardIds(ids);
+      } catch (err) {
+        console.error("Error fetching user cards:", err);
+      }
+    }
+    if (userId) fetchUserCards(userId);
+  }, [userId]);
+
   /* ──────────── fetch cards meta ──────────── */
   useEffect(() => {
-    const fetchCards = async () => {
-      try {
-        const res = await fetch("https://api-zto2acvx6a-uc.a.run.app/cards");
-        const data: CardsResponse = await res.json();
-        setCardsInfo(data);
-      } catch (err) {
-        console.error("Error fetching cards list:", err);
-      }
-    };
-    fetchCards();
+    fetch("https://api-zto2acvx6a-uc.a.run.app/cards")
+      .then((r) => r.json())
+      .then(setCardsInfo)
+      .catch((err) => console.error("Error fetching cards list:", err));
   }, []);
 
   /* ──────────── fetch nearby businesses ──────────── */
   useEffect(() => {
-    const fetchNearbyBusinesses = async () => {
+    async function fetchNearbyBusinesses() {
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') {
-          console.error('Permission to access location was denied');
+        if (status !== "granted") {
+          console.error("Permission to access location was denied");
           return;
         }
-  
-        const location = await Location.getCurrentPositionAsync({});
-        const { latitude, longitude } = location.coords;
-  
-        const url = `https://api-zto2acvx6a-uc.a.run.app/nearby_businesses?latitude=${latitude}&longitude=${longitude}`;
-        const response = await fetch(url);
-        const data = await response.json();
+        const { coords } = await Location.getCurrentPositionAsync({});
+        const url = `https://api-zto2acvx6a-uc.a.run.app/nearby_businesses?latitude=${coords.latitude}&longitude=${coords.longitude}`;
+        const res = await fetch(url);
+        const data = await res.json();
         setBusinesses(data.places || []);
       } catch (err) {
         console.error("Error fetching nearby businesses:", err);
       } finally {
         setLoading(false);
       }
-    };
-  
+    }
     fetchNearbyBusinesses();
   }, []);
-  
 
-  /* ──────────── handle press ──────────── */
-  const handlePress = useCallback(
+  /* ──────────── GPT quick recommendation ──────────── */
+  const handleRecommendPress = useCallback(async () => {
+    if (!purchaseDesc.trim()) return;
+    setRecLoading(true);
+    setRecommendedCard(null);
+    try {
+      const prompt = `I have these credit cards: ${userCardIds.join(
+        ", "
+      )}. For the following purchase: "${purchaseDesc}", which of my cards should I use to maximise rewards? Respond with the card slug only.`;
+      const response = await askOpenAI(prompt);
+      const cleanSlug = response
+        .trim()
+        .replace(/[^a-z0-9-]/gi, "")
+        .toLowerCase();
+      setRecommendedCard(cleanSlug);
+    } catch (err) {
+      console.error("Error fetching recommendation from OpenAI:", err);
+    } finally {
+      setRecLoading(false);
+    }
+  }, [purchaseDesc, userCardIds]);
+
+  /* ──────────── tap on a business row ──────────── */
+  const handleBusinessPress = useCallback(
     async (item: NearbyBusiness, index: number) => {
       if (expandedIndex === index) {
-        setExpandedIndex(null); // collapse
+        setExpandedIndex(null);
         return;
       }
 
       if (bestCardData[index] && bestCardData[index] !== "loading") {
-        setExpandedIndex(index); // already cached
+        setExpandedIndex(index);
         return;
       }
 
@@ -127,10 +156,8 @@ export default function NearbyLocationsScreen() {
           `&categoryName=${encodeURIComponent(
             item.primaryTypeDisplayName.text
           )}`;
-
         const res = await fetch(url);
         const data: BestCardResponse = await res.json();
-
         setBestCardData((p) => ({ ...p, [index]: data }));
       } catch (err) {
         console.error("Error fetching best cards:", err);
@@ -145,7 +172,7 @@ export default function NearbyLocationsScreen() {
     [userId, expandedIndex, bestCardData]
   );
 
-  /* ──────────── render helpers ──────────── */
+  /* ──────────── helpers ──────────── */
   const renderCards = (cards: string[]) => (
     <ScrollView
       horizontal
@@ -182,9 +209,9 @@ export default function NearbyLocationsScreen() {
     return (
       <TouchableOpacity
         style={[styles.businessItem, isExpanded && styles.businessItemExpanded]}
-        onPress={() => handlePress(item, index)}
+        onPress={() => handleBusinessPress(item, index)}
       >
-        {/* ── collapsed / header row ── */}
+        {/* header row */}
         <View style={styles.row}>
           <View style={styles.infoBlock}>
             <Text
@@ -198,11 +225,10 @@ export default function NearbyLocationsScreen() {
               {item.primaryTypeDisplayName.text}
             </Text>
           </View>
-
           <Text style={styles.chevron}>{isExpanded ? "▲" : "▼"}</Text>
         </View>
 
-        {/* ── expanded content ── */}
+        {/* expanded */}
         {isExpanded && (
           <View style={styles.expandedArea}>
             {bestData === "loading" ? (
@@ -226,16 +252,68 @@ export default function NearbyLocationsScreen() {
   /* ──────────── UI ──────────── */
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
+      <SafeAreaView
+        style={[styles.loadingContainer, { paddingTop: insets.top }]}
+      >
         <ActivityIndicator size="large" color="#4CD964" />
         <Text style={styles.loadingText}>Finding nearby places…</Text>
-      </View>
+      </SafeAreaView>
     );
   }
 
+  const recommendedCardInfo =
+    recommendedCard && cardsInfo[recommendedCard]
+      ? cardsInfo[recommendedCard]
+      : null;
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.heading}>Nearby Businesses</Text>
+    <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
+      {/* title & description */}
+      <Text style={styles.heading} numberOfLines={1} adjustsFontSizeToFit>
+        Recommendations
+      </Text>
+      <Text style={styles.subheading}>
+        Recommend card by input and location
+      </Text>
+
+      {/* quick GPT recommendation */}
+      <View style={styles.recommendBox}>
+        <TextInput
+          value={purchaseDesc}
+          onChangeText={setPurchaseDesc}
+          placeholder="e.g. $45 dinner at Olive Garden"
+          style={styles.input}
+        />
+        <TouchableOpacity
+          style={styles.recommendBtn}
+          onPress={handleRecommendPress}
+          disabled={recLoading}
+        >
+          <Text style={styles.recommendBtnText}>
+            {recLoading ? "…" : "Recommend"}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {recommendedCardInfo && (
+        <View style={styles.recommendedCardBox}>
+          <Image
+            source={{ uri: recommendedCardInfo.imageUrl }}
+            style={styles.recommendedCardImage}
+            resizeMode="contain"
+          />
+          <Text style={styles.recommendedCardName}>
+            {recommendedCardInfo.name}
+          </Text>
+        </View>
+      )}
+
+      {/* divider */}
+      <View style={styles.divider} />
+
+      {/* bottom list */}
+      <Text style={styles.sectionHeading}>Nearby businesses</Text>
+
       {businesses.length ? (
         <FlatList
           data={businesses}
@@ -246,19 +324,88 @@ export default function NearbyLocationsScreen() {
       ) : (
         <Text style={styles.noBusinessesText}>No nearby businesses found.</Text>
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 
 /* ──────────── styles ──────────── */
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
+
   heading: {
     fontSize: 22,
     fontWeight: "700",
-    padding: 20,
+    paddingHorizontal: 20,
     color: "#333",
   },
+  subheading: {
+    fontSize: 14,
+    color: "#666",
+    paddingHorizontal: 20,
+    marginTop: 4,
+    marginBottom: 12,
+  },
+
+  /* quick GPT recommendation */
+  recommendBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    marginBottom: 8,
+  },
+  input: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginRight: 8,
+    fontSize: 14,
+  },
+  recommendBtn: {
+    backgroundColor: "#4CD964",
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+  },
+  recommendBtnText: { color: "#fff", fontWeight: "600" },
+
+  /* chosen card result */
+  recommendedCardBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: 16,
+    marginBottom: 16,
+    padding: 10,
+    borderRadius: 12,
+    backgroundColor: "#f6fff9",
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  recommendedCardImage: { width: 50, height: 30, marginRight: 12 },
+  recommendedCardName: { flexShrink: 1, fontWeight: "600", color: "#222" },
+
+  /* divider */
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: "#e0e0e0",
+    marginHorizontal: 16,
+    marginVertical: 12,
+  },
+
+  /* bottom section */
+  sectionHeading: {
+    fontSize: 18,
+    fontWeight: "700",
+    paddingHorizontal: 20,
+    marginBottom: 8,
+    color: "#333",
+  },
+
   list: { paddingHorizontal: 16, paddingBottom: 32 },
 
   businessItem: {
@@ -274,29 +421,20 @@ const styles = StyleSheet.create({
   },
   businessItemExpanded: { backgroundColor: "#f0fff4" },
 
-  /* row now allows wrapping text block */
   row: {
     flexDirection: "row",
     alignItems: "flex-start",
   },
-  infoBlock: {
-    flex: 1, // takes remaining width
-    paddingRight: 8,
-  },
+  infoBlock: { flex: 1, paddingRight: 8 },
   businessName: {
     fontSize: 16,
     fontWeight: "600",
     color: "#222",
-    flexShrink: 1, // enable wrapping
+    flexShrink: 1,
     lineHeight: 20,
   },
   businessType: { marginTop: 2, color: "#666" },
-  chevron: {
-    fontSize: 18,
-    color: "#888",
-    marginLeft: 4,
-    alignSelf: "center",
-  },
+  chevron: { fontSize: 18, color: "#888", marginLeft: 4, alignSelf: "center" },
 
   expandedArea: { marginTop: 12 },
   earnRate: { fontWeight: "600", marginBottom: 6, color: "#222" },
@@ -316,23 +454,11 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   cardImage: { width: 100, height: 60 },
-  cardLabel: {
-    marginTop: 4,
-    fontSize: 12,
-    textAlign: "center",
-    color: "#444",
-  },
+  cardLabel: { marginTop: 4, fontSize: 12, textAlign: "center", color: "#444" },
 
-  noBusinessesText: {
-    textAlign: "center",
-    marginTop: 40,
-    color: "#888",
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
+  /* misc */
+  noBusinessesText: { textAlign: "center", marginTop: 40, color: "#888" },
+  loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
   loadingText: { marginTop: 12, color: "#666" },
   errorText: { color: "#888" },
 });
