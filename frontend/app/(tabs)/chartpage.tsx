@@ -66,7 +66,7 @@ const ChartPage = () => {
       const userPrefs = prefSnapshot.exists() ? prefSnapshot.val() : null;
       setPreferences(userPrefs);
 
-      const prompt = `Here are the user's credit cards: ${JSON.stringify(cardDetails.filter(Boolean))}. Here are their recent transactions: ${JSON.stringify(txJson)}. Here are their preferences: ${JSON.stringify(userPrefs)}. Here is a list of all cards available in our database: ${JSON.stringify(allCards)}. Recommend one card from the user's current cards and one card they do not yet have, and explain why for both. For the recommendations, include the card key in the format \"card_key:<key>\" so we can identify the images. Respond in a user-friendly format, without any hashtags or markdown, and separate the two recommendations clearly.`;
+      const prompt = `Here are the user's credit cards: ${JSON.stringify(cardDetails.filter(Boolean))}. Here are their recent transactions: ${JSON.stringify(txJson)}. Here are their preferences: ${JSON.stringify(userPrefs)}. Here is a list of all cards available in our database: ${JSON.stringify(allCards)}. Recommend one card that they do not yet have. Keep in mind user preferences and how they relate to the card details. Keep in mind that students may not want to pay a lot of annual fees. For the recommendation, include the card key in the format \"card_key:<key>\" so we can identify the images. Respond in a user-friendly format, without any hashtags or markdown.`;
 
       const result = await askOpenAI(prompt);
       setLlmResult(result ?? "No recommendations available.");
