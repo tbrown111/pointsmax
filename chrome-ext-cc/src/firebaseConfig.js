@@ -5,7 +5,7 @@ import { getAuth } from "firebase/auth";
 // import { getAnalytics } from "firebase/analytics";
 
 const firebaseConfig = {
-  apiKey: "",
+  apikey: "",
   authDomain: "pointsmax-cad35.firebaseapp.com",
   databaseURL: "https://pointsmax-cad35-default-rtdb.firebaseio.com",
   projectId: "pointsmax-cad35",
