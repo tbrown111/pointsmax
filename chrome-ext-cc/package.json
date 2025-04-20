@@ -1,0 +1,19 @@
+{
+  "name": "chrome-ext-cc",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "firebase": "^11.6.0"
+  },
+  "devDependencies": {
+    "vite": "^6.3.2",
+    "vite-plugin-static-copy": "^2.3.1"
+  }
+}
